@@ -401,7 +401,7 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 ### Phase 7 — Health Checks & Observability
 
-- [ ] **7.1** Create Health module
+- [x] **7.1** Create Health module
   - `src/health/health.module.ts`
   - `src/health/health.controller.ts`
   - `GET /health` — basic `{ status: 'ok' }`
@@ -409,7 +409,7 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
   - `GET /health/live` — lightweight liveness probe (always 200 if process running)
   - No auth required on health endpoints (`@Public()`)
 
-- [ ] **7.2** Add structured logging
+- [x] **7.2** Add structured logging
   - Configure NestJS logger with JSON format
   - Include `correlation_id`, `tenant_id`, `user_id`, `action`, `duration_ms` in all log lines
   - Create `src/common/interceptors/logging.interceptor.ts` — logs request/response with timing

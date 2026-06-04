@@ -22,6 +22,7 @@ import { AclModule } from './modules/acl/acl.module';
 import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { AuditModule } from './modules/audit/audit.module';
     AuthorizationModule,
     SuperAdminModule,
     AuditModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

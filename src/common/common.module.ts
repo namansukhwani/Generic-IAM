@@ -6,6 +6,7 @@ import { PermissionGuard } from './guards/permission.guard';
 import { AclGuard } from './guards/acl.guard';
 import { CorrelationIdInterceptor } from './interceptors/correlation-id.interceptor';
 import { ResponseTransformInterceptor } from './interceptors/response-transform.interceptor';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { TenantValidationPipe } from './pipes/tenant-validation.pipe';
 
@@ -35,6 +36,10 @@ import { TenantValidationPipe } from './pipes/tenant-validation.pipe';
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseTransformInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
     {
       provide: APP_FILTER,
