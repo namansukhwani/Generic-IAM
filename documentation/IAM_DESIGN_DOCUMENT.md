@@ -85,9 +85,8 @@ Design an enterprise-grade Access Control System for a multi-tenant microservice
 | FR-AUTH-01 | Email + password login | P0 |
 | FR-AUTH-02 | JWT access token (short-lived, 15min) | P0 |
 | FR-AUTH-03 | JWT refresh token (long-lived, 7d) | P0 |
-| FR-AUTH-04 | Four identity types: User, Service, SuperAdmin, Impersonation | P0 |
+| FR-AUTH-04 | Three identity types: User, SuperAdmin, Impersonation | P0 |
 | FR-AUTH-05 | Token revocation (logout) | P0 |
-| FR-AUTH-06 | Service account authentication (client_id + client_secret) | P0 |
 
 ### 3.2 User Management
 | ID | Requirement | Priority |
@@ -122,12 +121,11 @@ Design an enterprise-grade Access Control System for a multi-tenant microservice
 | FR-SA-02 | Impersonation with short-lived tokens (30min max) | P0 |
 | FR-SA-03 | Impersonation audit trail | P0 |
 
-### 3.6 Service-to-Service Security
+### 3.6 Service-to-Service Communication
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-S2S-01 | Service accounts with JWT-based machine auth | P0 |
+| FR-S2S-01 | Forward user JWT between services in K8s cluster | P0 |
 | FR-S2S-02 | Centralized authorization check API | P0 |
-| FR-S2S-03 | Service identity model (Expense, Payroll, etc.) | P0 |
 
 ### 3.7 Audit & Compliance
 | ID | Requirement | Priority |
@@ -159,11 +157,11 @@ Design an enterprise-grade Access Control System for a multi-tenant microservice
 
 ## 5. Understanding Summary
 
-1. **What:** Enterprise-grade multi-tenant IAM backend service (Modular Monolith) providing authentication, RBAC with hierarchical permissions, resource-level ACLs, audit logging, and service-to-service security.
+1. **What:** Enterprise-grade multi-tenant IAM backend service (Modular Monolith) providing authentication, RBAC with hierarchical permissions, resource-level ACLs, audit logging, and centralized authorization.
 
 2. **Why:** Central security layer for a SaaS platform with multiple services. Single source of truth for identity, access control, and compliance.
 
-3. **Who:** Consumed by both frontend apps (SPA/mobile → login, profile, token refresh) and backend microservices (authorization checks, service identity, impersonation).
+3. **Who:** Consumed by both frontend apps (SPA/mobile → login, profile, token refresh) and backend microservices (authorization checks, impersonation).
 
 4. **Tech Stack:** NestJS, PostgreSQL (RLS), Redis (caching), Kafka (audit events), TypeORM. Self-hosted (Docker/K8s).
 
@@ -182,7 +180,7 @@ Design an enterprise-grade Access Control System for a multi-tenant microservice
 | A1 | JWT access tokens: 15min TTL, refresh tokens: 7d TTL, stored in DB | Industry standard balance of security vs. UX |
 | A2 | SuperAdmin is seeded at bootstrap, not self-registered. Global scope (not per-tenant) | Security: SuperAdmin creation must be a controlled operation |
 | A3 | Kafka audit events are fire-and-forget in MVP (at-least-once, no replay guarantees) | Simplicity; guaranteed delivery adds significant complexity |
-| A4 | Service accounts use pre-provisioned credentials (client_id + client_secret), not mTLS | mTLS requires certificate infrastructure; overkill for MVP |
+| A4 | All microservices run in the same K8s cluster — network-level trust, no extra S2S auth needed. User JWT forwarded between services. | Simplifies architecture. K8s NetworkPolicies restrict pod communication. |
 | A5 | Organizational hierarchy is a simple tree (manager_id self-reference), not a DAG | Trees cover 99% of enterprise org charts; DAGs add query complexity |
 | A6 | Permission cache TTL: 5 minutes + event-driven invalidation via Kafka consumer | Balance between freshness and Redis load |
 | A7 | Impersonation tokens: max 30min TTL, cannot impersonate SuperAdmin, always audited | Security: impersonation is high-risk, must be bounded |
@@ -219,12 +217,12 @@ graph TB
     end
 
     FE -->|"REST API<br/>(Auth, Profile, RBAC)"| IAM
-    SVC_EXP -->|"REST API<br/>(AuthZ Checks)"| IAM
-    SVC_PAY -->|"REST API<br/>(AuthZ Checks)"| IAM
-    SVC_INV -->|"REST API<br/>(AuthZ Checks)"| IAM
-    SVC_RPT -->|"REST API<br/>(AuthZ Checks)"| IAM
-    SVC_WF -->|"REST API<br/>(AuthZ Checks)"| IAM
-    SVC_NOT -->|"REST API<br/>(AuthZ Checks)"| IAM
+    SVC_EXP -->|"REST API<br/>(AuthZ Checks, forward user JWT)"| IAM
+    SVC_PAY -->|"REST API<br/>(AuthZ Checks, forward user JWT)"| IAM
+    SVC_INV -->|"REST API<br/>(AuthZ Checks, forward user JWT)"| IAM
+    SVC_RPT -->|"REST API<br/>(AuthZ Checks, forward user JWT)"| IAM
+    SVC_WF -->|"REST API<br/>(AuthZ Checks, forward user JWT)"| IAM
+    SVC_NOT -->|"REST API<br/>(AuthZ Checks, forward user JWT)"| IAM
 
     IAM --> PG
     IAM --> RD
@@ -644,9 +642,10 @@ sequenceDiagram
 | Type | Description | Token Claims | Use Case |
 |------|-------------|-------------|----------|
 | `USER` | Human user within a tenant | user_id, tenant_id, identity_type | Normal user operations |
-| `SERVICE` | Machine identity | service_id, service_name, identity_type | Service-to-service calls |
 | `SUPER_ADMIN` | Global administrator | user_id, identity_type (no tenant_id) | Cross-tenant operations |
 | `IMPERSONATION` | SuperAdmin acting as user | user_id, tenant_id, impersonator_id, identity_type | Support/debugging |
+
+> **Note:** No `SERVICE` identity type. All microservices run in the same K8s cluster and forward the user's JWT. K8s NetworkPolicies enforce which pods can communicate.
 
 ### 10.2 JWT Token Structure
 
@@ -670,17 +669,6 @@ sequenceDiagram
   "impersonator_id": "superadmin-uuid",
   "iat": 1700000000,
   "exp": 1700001800
-}
-```
-
-**Service Token Payload:**
-```json
-{
-  "sub": "service-uuid",
-  "service_name": "expense-service",
-  "identity_type": "SERVICE",
-  "iat": 1700000000,
-  "exp": 1700003600
 }
 ```
 
@@ -967,7 +955,7 @@ sequenceDiagram
         SDK->>SDK: hasPermission('expense:delete') → true
     else Cache Miss
         SDK->>IAM: POST /authorization/check {user_id, tenant_id, permission}
-        Note over SDK,IAM: Uses service JWT in Authorization header
+        Note over SDK,IAM: Forwards user JWT in Authorization header (trusted K8s network)
         IAM-->>SDK: {allowed: true, permissions: [...], source: 'rbac'}
         SDK->>R: SET perms:{tenant_id}:{user_id} (TTL: 5min)
     end
@@ -1198,75 +1186,46 @@ Expired assignments are excluded from permission evaluation. A scheduled job cle
 
 ---
 
-## 13. Service-to-Service Security
+## 13. Service-to-Service Communication
 
-### 13.1 Design Decision: Dual-Header vs. Forward User JWT
+### 13.1 Design Decision: Forward User JWT (Trusted K8s Cluster)
+
+All microservices (Expense, Payroll, Invoice, Reporting, Workflow, Notification) run in the **same Kubernetes cluster**. K8s NetworkPolicies enforce which pods can communicate. No extra service-level authentication needed.
 
 #### Options Explored
 
 | Option | How It Works | Pros | Cons |
 |--------|-------------|------|------|
-| **A: Forward user JWT only** | Microservice passes user's `Authorization: Bearer <user-jwt>` to IAM/other services | Simple, single token | Service has no identity — can't audit *which* service called. User JWT expires in async chains. IAM can't enforce service-level permissions. |
-| **B: Dual-header (Service JWT + User context headers)** ✅ | Service JWT in `Authorization`, user context in `X-User-Id` / `X-Tenant-Id` headers | Clear service identity. User context preserved. Works in async flows. Full audit trail. | Services must be trusted to not spoof user headers — acceptable since services authenticate with their own credentials. |
-| **C: Dual JWT (Service JWT + forwarded User JWT)** | Service JWT in `Authorization`, raw user JWT in `X-User-Token` | Both tokens validated | User JWT may expire mid-chain. Double validation overhead. Over-engineered. |
+| **A: Forward user JWT only** ✅ | Microservice passes user's `Authorization: Bearer <user-jwt>` to IAM/other services | Simplest. Single token. No extra infra. JWT validates user identity at every hop. | Can't audit which *service* called (only which user). User JWT may expire in long async chains. |
+| **B: Dual-header (Service JWT + user headers)** | Service JWT in `Authorization`, user context in `X-User-Id`/`X-Tenant-Id` | Clear service identity for audit | Requires service accounts, credential management, extra identity type. Over-engineered for same-cluster. |
+| **C: mTLS between services** | Mutual TLS certificates | Strongest service identity | Certificate infrastructure, rotation complexity. Overkill. |
 
-**Selected: Option B — Dual-Header Pattern.**
+**Selected: Option A — Forward User JWT.**
 
 Rationale:
-- Service identity is required for audit ("which service made this authorization check?")
-- User JWTs have 15min TTL — in async flows (Kafka, queued jobs), they expire before processing
-- Trusted headers are the industry standard pattern (Google Zanzibar, Netflix Zuul, AWS internal services)
-- Decouples service authentication from user context — each concern is independent
+- Same K8s cluster = trusted network. K8s NetworkPolicies restrict which pods can reach IAM.
+- No service account management, no client_id/client_secret rotation, no SERVICE identity type.
+- User JWT carries full context (user_id, tenant_id) — IAM validates it directly.
+- Massive complexity reduction: removes 2 DB tables, 1 identity type, 1 auth endpoint, service seed data.
+- For async flows (Kafka), extract user context (user_id, tenant_id) before publishing. Consumer uses context directly.
 
-### 13.2 Service Account Model
+### 13.2 S2S Communication Pattern
 
-Each consuming microservice has a pre-provisioned **service account** with:
-- `client_id` (UUID)
-- `client_secret` (hashed, bcrypt)
-- `service_name` (e.g., `expense-service`)
-- Granted permissions (what the service can do)
-
-### 13.3 Service Authentication Flow
-
-```mermaid
-sequenceDiagram
-    participant SVC as Expense Service
-    participant IAM as IAM Service
-    participant DB as PostgreSQL
-
-    SVC->>IAM: POST /auth/service-login {client_id, client_secret}
-    IAM->>DB: Find service account by client_id
-    DB-->>IAM: Service account record
-    IAM->>IAM: Verify bcrypt hash of client_secret
-    alt Invalid
-        IAM-->>SVC: 401 Unauthorized
-    else Valid
-        IAM->>IAM: Generate JWT (identity_type: SERVICE, 1h TTL)
-        IAM-->>SVC: {access_token, expires_in}
-    end
-```
-
-Service caches its JWT and refreshes before expiry. No refresh token for services — re-authenticate with credentials.
-
-### 13.4 Dual-Header Pattern: Cross-Service Communication
-
-When a microservice calls another service or IAM on behalf of a user:
+When a microservice calls IAM or another service on behalf of a user:
 
 **Request Headers:**
 ```http
-Authorization: Bearer <service-jwt>     # Proves which service is calling
-X-User-Id: <user-uuid>                  # User on whose behalf
-X-Tenant-Id: <tenant-uuid>              # User's tenant
+Authorization: Bearer <user-jwt>        # Same JWT the user sent to the calling service
 X-Correlation-Id: <correlation-uuid>    # Request tracing
 ```
 
 **Why this is safe:**
-1. The `Authorization` header authenticates the service — only known services can call IAM
-2. IAM trusts `X-User-Id`/`X-Tenant-Id` because the calling service is already authenticated
-3. If a service is compromised, credential rotation revokes access immediately
-4. All calls are logged with both service identity and user context for audit
+1. K8s NetworkPolicies restrict which pods can reach IAM — only authorized services
+2. User JWT is validated at every hop — no trust delegation
+3. User JWT carries full identity context — no header spoofing possible
+4. All calls are audited with user context from JWT
 
-### 13.5 Cross-Service Authorization Check Flow
+### 13.3 Cross-Service Authorization Check Flow
 
 ```mermaid
 sequenceDiagram
@@ -1287,9 +1246,9 @@ sequenceDiagram
         SDK-->>EXP: ALLOW
     else Cache Miss
         SDK->>IAM: POST /authorization/check
-        Note over SDK,IAM: Headers: Authorization=Service JWT, X-User-Id, X-Tenant-Id
-        IAM->>IAM: Verify service JWT (identity_type: SERVICE)
-        IAM->>IAM: Evaluate RBAC + overrides + ACL for X-User-Id
+        Note over SDK,IAM: Forwards same user JWT (trusted K8s network)
+        IAM->>IAM: Validate user JWT
+        IAM->>IAM: Evaluate RBAC + overrides + ACL
         IAM-->>SDK: {allowed: true, effective_permissions: [...], source: 'rbac'}
         SDK->>R: SET perms:{tenant_id}:{user_id} with TTL 5min
         SDK-->>EXP: ALLOW
@@ -1298,28 +1257,56 @@ sequenceDiagram
     EXP-->>U: 201 Created
 ```
 
-### 13.6 Service-to-Service Communication (No User Context)
+### 13.4 Async Flows (Kafka — No JWT Available)
 
-For system-level operations (e.g., Notification Service sending a digest, Workflow Service running a scheduled job):
+For async operations (e.g., Expense Service publishes event to Kafka for Notification Service):
 
-```http
-Authorization: Bearer <service-jwt>     # Service identity only
-X-Correlation-Id: <correlation-uuid>
-# No X-User-Id — this is a system operation
+1. **Producer** extracts `user_id` and `tenant_id` from JWT **before** publishing to Kafka
+2. **Kafka message** carries `{ user_id, tenant_id, ... }` as metadata (not the JWT itself)
+3. **Consumer** uses the embedded context directly — no JWT validation needed
+4. If consumer needs to check permissions, it calls IAM's `/authorization/check` with `user_id` and `tenant_id` in the request body (no JWT required — trusted internal call via K8s network)
+
+```mermaid
+sequenceDiagram
+    participant EXP as Expense Service
+    participant K as Kafka
+    participant NOT as Notification Service
+    participant IAM as IAM Service
+
+    EXP->>EXP: Extract user_id, tenant_id from JWT
+    EXP->>K: Publish {event, user_id, tenant_id}
+    K->>NOT: Consume message
+    NOT->>NOT: Use user_id, tenant_id from message
+    opt Needs permission check
+        NOT->>IAM: POST /authorization/check {user_id, tenant_id, permission}
+        Note over NOT,IAM: Internal K8s call — no JWT needed
+        IAM-->>NOT: {allowed: true}
+    end
+    NOT->>NOT: Process notification
 ```
 
-IAM checks: does this service have the required permission? No user-level evaluation.
+### 13.5 Security: K8s Network Isolation
 
-### 13.7 Pre-Provisioned Service Accounts
+```yaml
+# K8s NetworkPolicy: only allow IAM traffic from known services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: iam-allow-internal
+spec:
+  podSelector:
+    matchLabels:
+      app: iam-service
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              access: iam-authorized
+      ports:
+        - port: 3000
+```
 
-| Service | client_id | Permissions |
-|---------|-----------|-------------|
-| expense-service | `svc-expense-uuid` | `authorization:check`, `user:read` |
-| payroll-service | `svc-payroll-uuid` | `authorization:check`, `user:read` |
-| invoice-service | `svc-invoice-uuid` | `authorization:check`, `user:read` |
-| reporting-service | `svc-reporting-uuid` | `authorization:check`, `user:read`, `role:read` |
-| workflow-service | `svc-workflow-uuid` | `authorization:check`, `role:read`, `user:read` |
-| notification-service | `svc-notification-uuid` | `authorization:check`, `user:read` |
+Only pods with label `access: iam-authorized` can reach IAM. External traffic goes through Ingress/API Gateway.
 
 ---
 
@@ -1346,9 +1333,6 @@ erDiagram
 
     permissions ||--o{ role_permissions : "used in"
     permissions ||--o{ user_permission_overrides : "overridden"
-
-    service_accounts ||--o{ service_permissions : "has"
-    permissions ||--o{ service_permissions : "used in"
 
     tenants {
         uuid id PK
@@ -1431,22 +1415,6 @@ erDiagram
         timestamp created_at
     }
 
-    service_accounts {
-        uuid id PK
-        varchar service_name "UNIQUE NOT NULL"
-        varchar client_id "UNIQUE NOT NULL"
-        varchar client_secret_hash "NOT NULL"
-        boolean is_active "DEFAULT true"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    service_permissions {
-        uuid id PK
-        uuid service_account_id FK "NOT NULL"
-        uuid permission_id FK "NOT NULL"
-        timestamp created_at
-    }
 
     refresh_tokens {
         uuid id PK
@@ -1462,7 +1430,7 @@ erDiagram
         uuid id PK
         uuid tenant_id FK "NULL (global events)"
         uuid actor_id "NOT NULL"
-        varchar actor_type "USER/SERVICE/SUPER_ADMIN"
+        varchar actor_type "USER/SUPER_ADMIN"
         varchar action "NOT NULL"
         varchar resource_type
         uuid resource_id
@@ -1593,7 +1561,6 @@ export abstract class BaseTenantEntity extends BaseEntity {
 | `POST` | `/auth/login` | User login (email + password) | No |
 | `POST` | `/auth/refresh` | Refresh access token | No (uses refresh_token) |
 | `POST` | `/auth/logout` | Revoke refresh tokens | Yes (User) |
-| `POST` | `/auth/service-login` | Service account login | No (uses client_id + secret) |
 | `GET` | `/auth/me` | Get current user profile | Yes (User) |
 
 #### `POST /auth/login`
@@ -1615,28 +1582,6 @@ export abstract class BaseTenantEntity extends BaseEntity {
     "refresh_token": "dGhpcyBpcyBhIHJlZnJlc2g...",
     "token_type": "Bearer",
     "expires_in": 900
-  }
-}
-```
-
-#### `POST /auth/service-login`
-
-**Request:**
-```json
-{
-  "client_id": "svc-expense-uuid",
-  "client_secret": "service-secret-key"
-}
-```
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiIs...",
-    "token_type": "Bearer",
-    "expires_in": 3600
   }
 }
 ```
@@ -2140,7 +2085,7 @@ NestJS App (N instances)
 | **SQL Injection** | TypeORM parameterized queries + RLS | Defense in depth |
 | **Tenant Isolation** | PostgreSQL RLS | Database-level enforcement, not app-level |
 | **Impersonation** | Short-lived (30min), audited, cannot impersonate SuperAdmin | Bounded blast radius |
-| **Service Secrets** | bcrypt-hashed client_secret | Never stored in plaintext |
+| **K8s Network Isolation** | NetworkPolicies restrict S2S traffic | Only authorized pods can reach IAM |
 | **CORS** | Whitelist-based | Only allow known frontend origins |
 | **Helmet** | HTTP security headers | XSS, MIME sniffing, clickjacking protection |
 
@@ -2325,13 +2270,12 @@ graph TB
 | D9 | **TypeORM** for ORM | Prisma, MikroORM, raw SQL | TypeORM integrates natively with NestJS. Decorator-based entities align with NestJS patterns. Trade-off: TypeORM has known issues with complex queries (mitigated by raw SQL for RLS setup). |
 | D10 | **Email + password only** for MVP | OAuth2/SSO, Passwordless | Minimal external dependencies. OAuth2 adds complexity (provider management, token exchange). Extension points designed but not built. |
 | D11 | **Append-only audit in PostgreSQL** | Dedicated audit DB (TimescaleDB, ClickHouse) | Single data store simplifies MVP. Monthly partitioning handles growth. Trade-off: PostgreSQL not optimized for append-only analytics (post-MVP migration path). |
-| D12 | **Service accounts** with client_id/secret | mTLS, API keys | Simpler than mTLS (no certificate infrastructure). Hashed secrets in DB. JWT-based service tokens. Trade-off: secrets can be leaked (rotation policy needed). |
+| D12 | **Forward user JWT for S2S** (no service accounts) | Service accounts with client_id/secret, Dual-header, mTLS | Same K8s cluster = trusted network. K8s NetworkPolicies restrict traffic. Eliminates SERVICE identity type, 2 DB tables, credential management. Massive complexity reduction. For async flows, extract user context before publishing to Kafka. |
 | D13 | **No rate limiting in MVP** | Redis-based rate limiting | Reduces MVP scope. bcrypt's compute cost provides some brute-force resistance. Post-MVP: Redis sliding window rate limiter. |
 | D14 | **Correlation ID via interceptor** | Middleware, Framework-level | NestJS interceptors have request/response context. Propagated via `X-Correlation-ID` header. |
-| D15 | **Dual-header S2S pattern** (Service JWT + user context headers) | Forward user JWT, Dual JWT (forward both) | Service identity required for audit. User JWTs expire in async chains. Trusted headers are industry standard (Google Zanzibar, Netflix). Decouples service auth from user context. |
-| D16 | **User permission overrides** (GRANT/DENY per user) | Assign multiple roles only, Create unnamed per-user role | Overrides are sparse (~10% users need them). Roles stay clean templates. DENY-wins model matches AWS IAM. Per-user roles would explode the role table. |
-| D17 | **IAM SDK for microservices** (`@iam/nestjs-sdk`) | Guards in IAM only (all services call IAM), Each service reimplements guards | SDK ensures consistent guard logic. Local Redis cache gives ~1ms authz checks vs ~20-50ms API calls. Kafka invalidation keeps caches fresh. |
-| D18 | **No PgBouncer in MVP** | PgBouncer from day one | TypeORM's built-in pool is sufficient for <10 instances. PgBouncer adds operational complexity. Will add in Phase 4 when scaling beyond 10+ instances. |
+| D15 | **User permission overrides** (GRANT/DENY per user) | Assign multiple roles only, Create unnamed per-user role | Overrides are sparse (~10% users need them). Roles stay clean templates. DENY-wins model matches AWS IAM. Per-user roles would explode the role table. |
+| D16 | **IAM SDK for microservices** (`@iam/nestjs-sdk`) | Guards in IAM only (all services call IAM), Each service reimplements guards | SDK ensures consistent guard logic. Local Redis cache gives ~1ms authz checks vs ~20-50ms API calls. Kafka invalidation keeps caches fresh. |
+| D17 | **No PgBouncer in MVP** | PgBouncer from day one | TypeORM's built-in pool is sufficient for <10 instances. PgBouncer adds operational complexity. Will add in Phase 4 when scaling beyond 10+ instances. |
 
 ---
 
@@ -2341,8 +2285,7 @@ graph TB
 |---------|--------|----------|-------|
 | Multi-tenant DB with RLS | ✅ MVP | P0 | Foundation |
 | JWT auth (access + refresh) | ✅ MVP | P0 | |
-| 4 identity types | ✅ MVP | P0 | User, Service, SuperAdmin, Impersonation |
-| Service accounts | ✅ MVP | P0 | 6 pre-seeded services |
+| 3 identity types | ✅ MVP | P0 | User, SuperAdmin, Impersonation |
 | User CRUD | ✅ MVP | P0 | |
 | Org hierarchy (manager_id) | ✅ MVP | P0 | |
 | User activate/deactivate | ✅ MVP | P0 | |
@@ -2358,7 +2301,7 @@ graph TB
 | Resource-level ACLs | ✅ MVP | P0 | |
 | Combined RBAC + overrides + ACL eval | ✅ MVP | P0 | |
 | SuperAdmin + impersonation | ✅ MVP | P0 | |
-| Service-to-service auth (dual-header) | ✅ MVP | P0 | Service JWT + user context headers |
+| S2S via forwarded user JWT | ✅ MVP | P0 | K8s network trust, no service accounts |
 | Centralized authz API | ✅ MVP | P0 | |
 | IAM NestJS SDK (`@iam/nestjs-sdk`) | ✅ MVP | P0 | Guards, decorators, cache for microservices |
 | Kafka audit logging | ✅ MVP | P0 | |
