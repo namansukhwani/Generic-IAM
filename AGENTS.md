@@ -29,4 +29,6 @@ Co-Authored-By: Antigravity <antigravity@deepmind.google.com>
 - `auth`: JWT strategy (Passport), cross-tenant login, hashed refresh tokens, token rotation implemented.
 - `rbac`: Role CRUD, permission assignment, user role assignment, user permission overrides (GRANT/DENY), effective permission calculation implemented.
 - `acl`: Resource ACL CRUD and Redis-cached permission checks implemented.
-- `audit` / `super-admin`: Entities created; logic pending implementation.
+- `authorization`: Centralized authz checks (RBAC + ACL) with Redis caching and batching implemented.
+- `super-admin`: Impersonation, tenant management (bypassing RLS), and audit log queries implemented.
+- `audit`: Entities created; logic pending implementation.

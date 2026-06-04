@@ -19,6 +19,8 @@ import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { AclModule } from './modules/acl/acl.module';
+import { AuthorizationModule } from './modules/authorization/authorization.module';
+import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { AclModule } from './modules/acl/acl.module';
     AuthModule,
     RbacModule,
     AclModule,
+    AuthorizationModule,
+    SuperAdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

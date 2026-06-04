@@ -324,7 +324,7 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 #### 5F — Authorization Check API (depends: RBAC, ACL)
 
-- [ ] **5F.1** Implement centralized authorization endpoint
+- [x] **5F.1** Implement centralized authorization endpoint
   - Add to Auth or create separate `authorization.controller.ts`
   - `POST /authorization/check` — accepts `{ user_id, tenant_id, permission, resource_type?, resource_id? }`. Can be called with user JWT (forwarded from microservice via trusted K8s network) or with user context in body (for async flows where no JWT is available).
   - Logic: Check RBAC (via permission cache service) → if denied and resource_id present → check ACL → return `{ allowed, source, evaluated_at }`
@@ -335,13 +335,13 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 #### 5G — SuperAdmin Module (depends: Auth, User, Tenant)
 
-- [ ] **5G.1** Create SuperAdmin module structure
+- [x] **5G.1** Create SuperAdmin module structure
   - `src/modules/super-admin/super-admin.module.ts`
   - `src/modules/super-admin/super-admin.controller.ts`
   - `src/modules/super-admin/super-admin.service.ts`
   - DTOs: `impersonate.dto.ts`
 
-- [ ] **5G.2** Implement SuperAdmin endpoints
+- [x] **5G.2** Implement SuperAdmin endpoints
   - `POST /super-admin/impersonate` — generate impersonation token for target user. Requires `{ user_id, tenant_id, reason }`. Max 30min TTL. Cannot impersonate another SuperAdmin. SuperAdmin only.
   - `GET /super-admin/tenants` — list all tenants with user counts (bypass RLS). SuperAdmin only.
   - `GET /super-admin/tenants/:id/users` — list users for a specific tenant (bypass RLS). SuperAdmin only.
