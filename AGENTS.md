@@ -26,4 +26,7 @@ Co-Authored-By: Antigravity <antigravity@deepmind.google.com>
 ## Module Status
 - `tenant`: CRUD implemented. Creation configures tenant and admin user transactionally.
 - `user`: CRUD, user hierarchy query (recursive CTE), status toggles implemented.
-- `auth` / `rbac` / `acl` / `audit` / `super-admin`: Entities created; logic pending implementation.
+- `auth`: JWT strategy (Passport), cross-tenant login, hashed refresh tokens, token rotation implemented.
+- `rbac`: Role CRUD, permission assignment, user role assignment, user permission overrides (GRANT/DENY), effective permission calculation implemented.
+- `acl`: Resource ACL CRUD and Redis-cached permission checks implemented.
+- `audit` / `super-admin`: Entities created; logic pending implementation.

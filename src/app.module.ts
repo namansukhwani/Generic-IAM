@@ -18,6 +18,7 @@ import { TenantModule } from './modules/tenant/tenant.module';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RbacModule } from './modules/rbac/rbac.module';
+import { AclModule } from './modules/acl/acl.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { RbacModule } from './modules/rbac/rbac.module';
     UserModule,
     AuthModule,
     RbacModule,
+    AclModule,
   ],
   controllers: [AppController],
   providers: [AppService],

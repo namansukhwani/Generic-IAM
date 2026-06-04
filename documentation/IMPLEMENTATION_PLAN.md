@@ -307,13 +307,13 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 #### 5E — ACL Module (depends: User, Tenant, Cache)
 
-- [ ] **5E.1** Create ACL module structure
+- [x] **5E.1** Create ACL module structure
   - `src/modules/acl/acl.module.ts`
   - `src/modules/acl/acl.controller.ts`
   - `src/modules/acl/acl.service.ts`
   - DTOs: `create-acl.dto.ts`, `check-acl.dto.ts`, `acl-query.dto.ts`
 
-- [ ] **5E.2** Implement ACL CRUD + Check
+- [x] **5E.2** Implement ACL CRUD + Check
   - `POST /acl` — create resource ACL entry. Tenant_Admin.
   - `GET /acl` — list ACLs, filterable by `user_id`, `resource_type`, `resource_id`. Tenant_Admin.
   - `DELETE /acl/:id` — delete ACL entry. Tenant_Admin.
