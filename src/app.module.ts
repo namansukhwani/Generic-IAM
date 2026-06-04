@@ -16,6 +16,7 @@ import { CacheModule } from './cache/cache.module';
 import { EventModule } from './event/event.module';
 import { TenantModule } from './modules/tenant/tenant.module';
 import { UserModule } from './modules/user/user.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { UserModule } from './modules/user/user.module';
     EventModule,
     TenantModule,
     UserModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

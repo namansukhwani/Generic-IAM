@@ -235,19 +235,19 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 #### 5C — Auth Module (depends: User, Tenant)
 
-- [ ] **5C.1** Create Auth module structure
+- [x] **5C.1** Create Auth module structure
   - `src/modules/auth/auth.module.ts`
   - `src/modules/auth/auth.controller.ts`
   - `src/modules/auth/auth.service.ts`
   - `src/modules/auth/strategies/jwt.strategy.ts`
   - DTOs: `login.dto.ts`, `refresh-token.dto.ts`, `service-auth.dto.ts`, `token-response.dto.ts`
 
-- [ ] **5C.2** Implement JWT strategy
+- [x] **5C.2** Implement JWT strategy
   - `jwt.strategy.ts` — `PassportStrategy(Strategy)`, extracts JWT from `Authorization: Bearer <token>`, validates, attaches `JwtPayload` to request
   - Register `JwtModule` with secret from config, default TTL from config
   - Key concern: Strategy must handle all 3 identity types (USER, SUPER_ADMIN, IMPERSONATION) and set `req.user` accordingly
 
-- [ ] **5C.3** Implement User auth endpoints
+- [x] **5C.3** Implement User auth endpoints
   - `POST /auth/login` — find user by email (cross-tenant, no RLS), verify bcrypt hash, check `is_active`, generate access token (15min) + refresh token (7d, stored hashed in DB). Return `{ access_token, refresh_token, token_type, expires_in }`.
   - `POST /auth/refresh` — find refresh token by hash, check expiry, rotate (delete old, create new), generate new access token. Return same format.
   - `POST /auth/logout` — delete all refresh tokens for user, invalidate Redis permission cache. Requires auth.
