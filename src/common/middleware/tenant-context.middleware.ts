@@ -30,7 +30,7 @@ export class TenantContextMiddleware implements NestMiddleware {
       // A more robust approach for TypeORM RLS is to use a custom repository or Interceptor
       // that sets the context on the query runner.
       // Implementing SET LOCAL app.current_tenant requires a transaction.
-      req['tenant_id'] = tenantId;
+      (req as any).tenant_id = tenantId;
     }
 
     next();

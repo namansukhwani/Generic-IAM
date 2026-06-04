@@ -129,7 +129,7 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 ### Phase 3 — Common Infrastructure Module
 
-- [ ] **3.1** Create interfaces and constants
+- [x] **3.1** Create interfaces and constants
   - `src/common/interfaces/jwt-payload.interface.ts` — `sub`, `tenant_id`, `identity_type`, `service_name?`, `impersonator_id?`
   - `src/common/interfaces/request-context.interface.ts` — extends Express Request with `user` field
   - `src/common/interfaces/paginated-response.interface.ts` — `data`, `total`, `page`, `limit`
@@ -138,38 +138,38 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
   - `src/common/constants/system-permissions.constant.ts` — all `resource:action` strings from Section 11.3
   - `src/common/constants/audit-events.constant.ts` — all event type strings from Section 17.1
 
-- [ ] **3.2** Create utility functions
+- [x] **3.2** Create utility functions
   - `src/common/utils/password.util.ts` — `hashPassword(plain)`, `comparePassword(plain, hash)` using bcrypt cost 12
   - `src/common/utils/permission-matcher.util.ts` — `computeEffectivePermissions()`, `hasPermission()` from Section 11.3
   - Write unit tests for `permission-matcher.util.ts` (critical: wildcard matching, DENY override, edge cases)
 
-- [ ] **3.3** Create decorators
+- [x] **3.3** Create decorators
   - `src/common/decorators/public.decorator.ts` — `@Public()` marks route as no-auth
   - `src/common/decorators/current-user.decorator.ts` — `@CurrentUser()` extracts user from request
   - `src/common/decorators/require-permissions.decorator.ts` — `@RequirePermissions('expense:read')` sets metadata
   - `src/common/decorators/require-acl.decorator.ts` — `@RequireAcl('expense', 'delete')` sets metadata
   - `src/common/decorators/identity-types.decorator.ts` — `@IdentityTypes(USER, SERVICE)` restricts identity types
 
-- [ ] **3.4** Create guards
+- [x] **3.4** Create guards
   - `src/common/guards/jwt-auth.guard.ts` — extends `AuthGuard('jwt')`, checks `@Public()`, attaches user to request
   - `src/common/guards/identity-type.guard.ts` — reads `@IdentityTypes()` metadata, checks `req.user.identity_type`
   - `src/common/guards/permission.guard.ts` — reads `@RequirePermissions()` metadata, checks Redis cache → DB fallback, uses `hasPermission()`. SuperAdmin bypasses all checks.
   - `src/common/guards/acl.guard.ts` — reads `@RequireAcl()` metadata, queries `resource_acls` for (user_id, resource_type, resource_id). Extracts resource_id from `req.params`.
   - Register `JwtAuthGuard` as global guard in `AppModule`
 
-- [ ] **3.5** Create interceptors, filters, pipes
+- [x] **3.5** Create interceptors, filters, pipes
   - `src/common/interceptors/correlation-id.interceptor.ts` — reads `X-Correlation-ID` header, generates UUID if missing, attaches to request context, sets response header
   - `src/common/interceptors/response-transform.interceptor.ts` — wraps all responses in `{ success, data, meta: { timestamp, correlation_id } }` envelope
   - `src/common/filters/global-exception.filter.ts` — catches all exceptions, formats into error envelope `{ success: false, error: { code, message, details } }`, logs with correlation_id
   - `src/common/pipes/tenant-validation.pipe.ts` — validates tenant_id from JWT exists in DB (cached)
   - Register all globally in `main.ts` or `AppModule`
 
-- [ ] **3.6** Create base service and base controller (generic CRUD)
+- [x] **3.6** Create base service and base controller (generic CRUD)
   - `src/common/base/base.service.ts` — generic `findAll(options)`, `findOne(id)`, `create(dto)`, `update(id, dto)`, `remove(id)` using TypeORM repository pattern
   - `src/common/base/base.controller.ts` — optional generic controller with `@Get()`, `@Post()`, `@Patch()`, `@Delete()` wired to base service
   - Key concern: Use TypeORM `Repository<T>` injection pattern, not custom repository classes (keeps it simple for MVP)
 
-- [ ] **3.7** Create Common module
+- [x] **3.7** Create Common module
   - `src/common/common.module.ts` — exports all guards, decorators, utilities, interceptors
   - `@Global()` module so all domain modules can use without importing
 
@@ -177,14 +177,14 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 ### Phase 4 — Cache & Event Infrastructure
 
-- [ ] **4.1** Create Redis cache module
+- [x] **4.1** Create Redis cache module
   - `src/cache/cache.module.ts` — wraps `@nestjs/cache-manager` with Redis store
   - `src/cache/cache.service.ts` — typed wrapper: `getPermissions(tenantId, userId)`, `setPermissions(...)`, `invalidatePermissions(...)`, `getAcl(...)`, `setAcl(...)`, `invalidateAcl(...)`
   - Key pattern: `perms:{tenant_id}:{user_id}` → `Set<string>` (serialized as JSON array)
   - Key pattern: `acl:{tenant_id}:{user_id}:{resource_type}:{resource_id}` → `boolean`
   - TTL: 5 minutes (300s) from config
 
-- [ ] **4.2** Create Kafka event module
+- [x] **4.2** Create Kafka event module
   - `src/event/event.module.ts` — Kafka client microservice config
   - `src/event/event.producer.ts` — generic `emit(topic, event)` method
   - Topics: `iam.audit`, `iam.permission.changed`, `iam.user.changed`

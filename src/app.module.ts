@@ -11,6 +11,9 @@ import kafkaConfig from './config/kafka.config';
 
 import { DatabaseModule } from './database/database.module';
 import { TenantContextMiddleware } from './common/middleware/tenant-context.middleware';
+import { CommonModule } from './common/common.module';
+import { CacheModule } from './cache/cache.module';
+import { EventModule } from './event/event.module';
 
 @Module({
   imports: [
@@ -19,6 +22,9 @@ import { TenantContextMiddleware } from './common/middleware/tenant-context.midd
       load: [appConfig, databaseConfig, jwtConfig, redisConfig, kafkaConfig],
     }),
     DatabaseModule,
+    CommonModule,
+    CacheModule,
+    EventModule,
   ],
   controllers: [AppController],
   providers: [AppService],

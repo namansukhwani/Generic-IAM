@@ -1,5 +1,6 @@
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
@@ -44,6 +45,22 @@ async function bootstrap() {
 
   // Graceful shutdown
   app.enableShutdownHooks();
+
+  // Kafka Microservice setup
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.KAFKA,
+    options: {
+      client: {
+        brokers: configService.get<string[]>('kafka.brokers', ['localhost:9092']),
+        clientId: configService.get<string>('kafka.clientId', 'iam-service-client'),
+      },
+      consumer: {
+        groupId: configService.get<string>('kafka.groupId', 'iam-service-group'),
+      },
+    },
+  });
+  
+  await app.startAllMicroservices();
 
   const port = configService.get<number>('app.port', 3000);
   await app.listen(port);
