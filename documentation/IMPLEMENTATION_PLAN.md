@@ -258,13 +258,13 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 #### 5D — RBAC Module (depends: User, Tenant, Cache, Event)
 
-- [ ] **5D.1** Create RBAC module structure
+- [x] **5D.1** Create RBAC module structure
   - `src/modules/rbac/rbac.module.ts`
   - Controllers: `role.controller.ts`, `permission.controller.ts`, `assignment.controller.ts`
   - Services: `role.service.ts`, `permission.service.ts`, `assignment.service.ts`, `permission-cache.service.ts`
   - DTOs: `create-role.dto.ts`, `assign-role.dto.ts`, `create-permission.dto.ts`, `assign-permission.dto.ts`, `create-override.dto.ts`
 
-- [ ] **5D.2** Implement Role CRUD
+- [x] **5D.2** Implement Role CRUD
   - `POST /roles` — create custom role in current tenant. Tenant_Admin only. `is_system = false`.
   - `GET /roles` — list roles (system + tenant custom). Tenant_Admin.
   - `GET /roles/:id` — get role with permissions. Tenant_Admin.
@@ -272,7 +272,7 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
   - `DELETE /roles/:id` — delete custom role. Cannot delete system roles. Check no users assigned. Tenant_Admin.
   - Audit: emit `ROLE_CREATED`, `ROLE_UPDATED`, `ROLE_DELETED`
 
-- [ ] **5D.3** Implement Permission endpoints
+- [x] **5D.3** Implement Permission endpoints
   - `GET /permissions` — list all available permissions (global, not tenant-scoped). Tenant_Admin.
   - `POST /roles/:id/permissions` — assign permission(s) to role. Tenant_Admin.
   - `DELETE /roles/:id/permissions/:permissionId` — remove permission from role. Tenant_Admin.
@@ -280,7 +280,7 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
   - Audit: emit `PERMISSION_ADDED_TO_ROLE`, `PERMISSION_REMOVED_FROM_ROLE`
   - Invalidate: emit Kafka `iam.permission.changed` → invalidate all affected users' Redis cache
 
-- [ ] **5D.4** Implement Role Assignment
+- [x] **5D.4** Implement Role Assignment
   - `POST /users/:id/roles` — assign role to user with optional `expires_at`. Tenant_Admin.
   - `DELETE /users/:id/roles/:roleId` — revoke role from user. Tenant_Admin.
   - `GET /users/:id/roles` — list user's roles (including expiry status). Tenant_Admin or self.
@@ -289,7 +289,7 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
   - Invalidate: emit Kafka `iam.permission.changed` for affected user
   - Audit: emit `ROLE_ASSIGNED`, `ROLE_REVOKED`
 
-- [ ] **5D.5** Implement User Permission Overrides
+- [x] **5D.5** Implement User Permission Overrides
   - `POST /users/:id/permission-overrides` — add GRANT or DENY override. Tenant_Admin.
   - `GET /users/:id/permission-overrides` — list user's overrides. Tenant_Admin or self.
   - `DELETE /users/:id/permission-overrides/:overrideId` — remove override. Tenant_Admin.
