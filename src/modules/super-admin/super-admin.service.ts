@@ -6,6 +6,8 @@ import { TenantEntity } from '../tenant/entities/tenant.entity';
 import { UserEntity } from '../user/entities/user.entity';
 import { ImpersonateDto } from './dto/impersonate.dto';
 import { EventProducer } from '../../event/event.producer';
+import { AuditService } from '../audit/audit.service';
+import { AuditQueryDto } from '../audit/dto/audit-query.dto';
 
 @Injectable()
 export class SuperAdminService {
@@ -16,6 +18,7 @@ export class SuperAdminService {
     private readonly userRepository: Repository<UserEntity>,
     private readonly jwtService: JwtService,
     private readonly eventProducer: EventProducer,
+    private readonly auditService: AuditService,
   ) {}
 
   async impersonate(dto: ImpersonateDto, superAdminId: string): Promise<{ access_token: string; expires_in: number }> {
@@ -62,9 +65,7 @@ export class SuperAdminService {
     return this.userRepository.find({ where: { tenant_id: tenantId } });
   }
 
-  async getAuditLogs(filters: any): Promise<any[]> {
-    // Phase 5H will implement actual audit logs storage.
-    // This is a placeholder.
-    return [];
+  async getAuditLogs(filters: AuditQueryDto): Promise<any[]> {
+    return this.auditService.queryLogs(filters);
   }
 }

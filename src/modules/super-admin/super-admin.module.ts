@@ -7,6 +7,7 @@ import { SuperAdminController } from './super-admin.controller';
 import { TenantEntity } from '../tenant/entities/tenant.entity';
 import { UserEntity } from '../user/entities/user.entity';
 import { EventModule } from '../../event/event.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { EventModule } from '../../event/event.module';
       inject: [ConfigService],
     }),
     EventModule,
+    AuditModule,
   ],
   controllers: [SuperAdminController],
   providers: [SuperAdminService],

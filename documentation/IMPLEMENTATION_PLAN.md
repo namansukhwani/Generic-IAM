@@ -352,19 +352,19 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 #### 5H — Audit Module (depends: Event, Database)
 
-- [ ] **5H.1** Create Audit module structure
+- [x] **5H.1** Create Audit module structure
   - `src/modules/audit/audit.module.ts`
   - `src/modules/audit/audit.service.ts`
   - `src/modules/audit/audit.consumer.ts` (Kafka consumer)
   - DTOs: `audit-query.dto.ts`
 
-- [ ] **5H.2** Implement Audit consumer and storage
+- [x] **5H.2** Implement Audit consumer and storage
   - Kafka consumer listens on `iam.audit` topic
   - On each message: deserialize → INSERT into `audit_logs` table (append-only)
   - Key concern: Append-only — no UPDATE, no DELETE on this table
   - Key concern: Batch inserts for performance (buffer up to 100 events or 1s, whichever first)
 
-- [ ] **5H.3** Implement Audit query API
+- [x] **5H.3** Implement Audit query API
   - `GET /super-admin/audit-logs` — paginated query with filters: `tenant_id`, `actor_id`, `action`, `resource_type`, `date_from`, `date_to`, `correlation_id`
   - SuperAdmin only (uses BYPASSRLS)
   - Key concern: Ensure indexes cover common query patterns (see Section 14.2)

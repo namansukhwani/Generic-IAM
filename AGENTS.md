@@ -31,4 +31,4 @@ Co-Authored-By: Antigravity <antigravity@deepmind.google.com>
 - `acl`: Resource ACL CRUD and Redis-cached permission checks implemented.
 - `authorization`: Centralized authz checks (RBAC + ACL) with Redis caching and batching implemented.
 - `super-admin`: Impersonation, tenant management (bypassing RLS), and audit log queries implemented.
-- `audit`: Entities created; logic pending implementation.
+- `audit`: Kafka consumer, batch insertions, and query logic implemented.
