@@ -373,26 +373,26 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 ### Phase 6 — Seed Data & Bootstrap
 
-- [ ] **6.1** Create system permissions seed
+- [x] **6.1** Create system permissions seed
   - File: `src/database/seeds/system-permissions.seed.ts`
   - Seed all `resource:action` permissions from Section 11.3 + wildcard `*:*`
   - Resources: `expense`, `payroll`, `invoice`, `report`, `workflow`, `notification`, `user`, `role`, `acl`, `tenant`, `audit`
   - Actions per resource: `read`, `write`, `delete`, `approve`, `export`, `execute`, `assign` (where applicable)
   - Idempotent: check existence before insert
 
-- [ ] **6.2** Create system roles seed
+- [x] **6.2** Create system roles seed
   - File: `src/database/seeds/system-roles.seed.ts`
   - Seed all 15+ roles from Section 12.2 with their permission mappings
   - `is_system = true`, `tenant_id = NULL`
   - Idempotent: upsert pattern
 
-- [ ] **6.3** Create SuperAdmin seed
+- [x] **6.3** Create SuperAdmin seed
   - File: `src/database/seeds/super-admin.seed.ts`
   - Create SuperAdmin user from `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` env vars
   - Hash password with bcrypt
   - Idempotent: skip if exists
 
-- [ ] **6.4** Create seed runner
+- [x] **6.4** Create seed runner
   - File: `src/database/seeds/seed.runner.ts`
   - Run: permissions → roles → role_permissions → super_admin
   - Create npm script: `"seed": "ts-node src/database/seeds/seed.runner.ts"`

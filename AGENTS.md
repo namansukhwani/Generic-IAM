@@ -32,3 +32,4 @@ Co-Authored-By: Antigravity <antigravity@deepmind.google.com>
 - `authorization`: Centralized authz checks (RBAC + ACL) with Redis caching and batching implemented.
 - `super-admin`: Impersonation, tenant management (bypassing RLS), and audit log queries implemented.
 - `audit`: Kafka consumer, batch insertions, and query logic implemented.
+- `seeding`: Database seeds (permissions, roles, super-admin) and runner script implemented.
