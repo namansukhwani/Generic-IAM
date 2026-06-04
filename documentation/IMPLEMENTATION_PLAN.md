@@ -198,13 +198,13 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 #### 5A — Tenant Module (no dependencies)
 
-- [ ] **5A.1** Create Tenant module structure
+- [x] **5A.1** Create Tenant module structure
   - `src/modules/tenant/tenant.module.ts`
   - `src/modules/tenant/tenant.controller.ts`
   - `src/modules/tenant/tenant.service.ts`
   - DTOs: `create-tenant.dto.ts`, `update-tenant.dto.ts`
 
-- [ ] **5A.2** Implement Tenant CRUD
+- [x] **5A.2** Implement Tenant CRUD
   - `POST /tenants` — create tenant + initial admin user (transactional). SuperAdmin only.
   - `GET /tenants` — list all tenants (SuperAdmin only, paginated)
   - `GET /tenants/:id` — get tenant details (SuperAdmin or Tenant_Admin of that tenant)
@@ -215,13 +215,13 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 #### 5B — User Module (depends: Tenant)
 
-- [ ] **5B.1** Create User module structure
+- [x] **5B.1** Create User module structure
   - `src/modules/user/user.module.ts`
   - `src/modules/user/user.controller.ts`
   - `src/modules/user/user.service.ts`
   - DTOs: `create-user.dto.ts`, `update-user.dto.ts`, `user-response.dto.ts`
 
-- [ ] **5B.2** Implement User CRUD
+- [x] **5B.2** Implement User CRUD
   - `POST /users` — create user within current tenant. Hash password. Tenant_Admin only.
   - `GET /users` — list users in current tenant (paginated, filterable). Tenant_Admin.
   - `GET /users/:id` — get user details. Tenant_Admin or self.

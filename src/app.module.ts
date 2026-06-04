@@ -14,6 +14,8 @@ import { TenantContextMiddleware } from './common/middleware/tenant-context.midd
 import { CommonModule } from './common/common.module';
 import { CacheModule } from './cache/cache.module';
 import { EventModule } from './event/event.module';
+import { TenantModule } from './modules/tenant/tenant.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { EventModule } from './event/event.module';
     CommonModule,
     CacheModule,
     EventModule,
+    TenantModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],
