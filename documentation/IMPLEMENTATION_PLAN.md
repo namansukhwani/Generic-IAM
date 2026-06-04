@@ -80,13 +80,13 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 ### Phase 2 — Database Infrastructure & RLS
 
-- [ ] **2.1** Create Database module with TypeORM
+- [x] **2.1** Create Database module with TypeORM
   - File: `src/database/database.module.ts`
   - TypeORM config from `database.config.ts`
   - `autoLoadEntities: true`, `synchronize: false` (use migrations)
   - Connection pool: `extra: { max: 20 }`
 
-- [ ] **2.2** Create all entity files (no business logic yet, just schema)
+- [x] **2.2** Create all entity files (no business logic yet, just schema)
   - `src/common/base/base.entity.ts` — `id` (UUID), `created_at`, `updated_at`
   - `src/common/base/base-tenant.entity.ts` — extends BaseEntity + `tenant_id` FK
   - `src/modules/tenant/entities/tenant.entity.ts`
@@ -104,13 +104,13 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
   - Key concern: `user.email` unique per tenant (composite unique: `tenant_id + email`)
   - Key concern: `audit_logs` is append-only — no `updated_at`, no soft-delete
 
-- [ ] **2.3** Generate TypeORM migration from entities
+- [x] **2.3** Generate TypeORM migration from entities
   - Run `typeorm migration:generate`
   - File: `src/database/migrations/TIMESTAMP-InitialSchema.ts`
   - Manually add all indexes from design doc Section 14.2
   - Key concern: Add `UNIQUE` constraints on `permissions(resource, action)`, `users(tenant_id, email)`, `user_permission_overrides(tenant_id, user_id, permission_id)`
 
-- [ ] **2.4** Create RLS migration
+- [x] **2.4** Create RLS migration
   - File: `src/database/migrations/TIMESTAMP-EnableRLS.ts`
   - Raw SQL migration: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`
   - Create RLS policies for: `users`, `roles`, `user_roles`, `role_permissions`, `resource_acls`, `user_permission_overrides`
@@ -118,7 +118,7 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
   - Reference: Design doc Section 9.2
   - Key concern: RLS policy on `roles` must allow `is_system = true` rows to be visible to all tenants
 
-- [ ] **2.5** Create Tenant Context Middleware
+- [x] **2.5** Create Tenant Context Middleware
   - File: `src/common/middleware/tenant-context.middleware.ts`
   - On every request: extract `tenant_id` from JWT → `SET LOCAL app.current_tenant = '<tenant_id>'`
   - Use `SET LOCAL` (not `SET`) so it's transaction-scoped
