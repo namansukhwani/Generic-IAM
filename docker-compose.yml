@@ -1,5 +1,4 @@
 services:
-
   # ────────────────────────────────────────────
   # Infrastructure
   # ────────────────────────────────────────────
@@ -41,6 +40,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_4LW_COMMANDS_WHITELIST: "*"
+      KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=*"
     healthcheck:
       test: ["CMD-SHELL", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
       interval: 10s
@@ -65,7 +66,11 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list >/dev/null 2>&1"]
+      test:
+        [
+          "CMD-SHELL",
+          "kafka-topics --bootstrap-server localhost:29092 --list >/dev/null 2>&1",
+        ]
       interval: 15s
       timeout: 10s
       retries: 12
@@ -99,7 +104,7 @@ services:
     command: >
       sh -c "
         echo '→ Running TypeORM migrations...' &&
-        npx typeorm migration:run -d src/database/data-source.ts &&
+        npx ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:run -d src/database/data-source.ts &&
         echo '→ Seeding database...' &&
         npm run seed &&
         echo '✓ Database ready.'
@@ -134,8 +139,12 @@ services:
     env_file:
       - .env.docker
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health/live 2>/dev/null || exit 1"]
-      interval: 15s
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:3000/api/v1/health/live 2>/dev/null || exit 1",
+        ]
+      interval: 90s
       timeout: 10s
       retries: 10
       start_period: 30s
@@ -146,15 +155,16 @@ services:
       dockerfile: iam-showcase/Dockerfile
     restart: unless-stopped
     ports:
-      - "3020:3020"
+      - "3010:3010"
     depends_on:
       iam:
         condition: service_healthy
     env_file:
       - .env.docker
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3020/ 2>/dev/null || exit 1"]
-      interval: 15s
+      test:
+        ["CMD-SHELL", "wget -qO- http://localhost:3010/health 2>/dev/null || exit 1"]
+      interval: 90s
       timeout: 10s
       retries: 5
       start_period: 30s

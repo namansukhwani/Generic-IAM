@@ -12,7 +12,10 @@ export class IamClientService {
     resourceId?: string,
   ): Promise<{ allowed: boolean }> {
     try {
-      const response = await fetch(`${this.iamUrl}/authorization/check`, {
+      const baseUrl = this.iamUrl.endsWith('/api/v1')
+        ? this.iamUrl
+        : `${this.iamUrl.replace(/\/$/, '')}/api/v1`;
+      const response = await fetch(`${baseUrl}/authorization/check`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

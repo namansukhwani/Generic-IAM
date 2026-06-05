@@ -1,5 +1,5 @@
 import { KAFKA_TOPICS } from '../common/constants/kafka.constant';
-import { Controller } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { CacheService } from '../cache/cache.service';
 
@@ -15,6 +15,8 @@ export interface PermissionChangedEvent {
 
 @Controller()
 export class EventConsumer {
+  private readonly logger = new Logger(EventConsumer.name);
+
   constructor(private readonly cacheService: CacheService) {}
 
   @EventPattern(KAFKA_TOPICS.IAM_PERMISSION_CHANGED)
@@ -22,15 +24,24 @@ export class EventConsumer {
     const tenantId = message.tenant_id || message.payload?.tenant_id;
     const userId = message.user_id || message.payload?.user_id;
 
-    if (!tenantId) return;
+    if (!tenantId) {
+      this.logger.warn('No tenant_id in permission.changed event — skipping');
+      return;
+    }
+
+    this.logger.log(
+      `permission.changed received | tenant_id=${tenantId} user_id=${userId ?? 'N/A'}`,
+    );
 
     if (userId) {
-      // Per-user change (role assigned/revoked, override added/removed):
-      // clear both the full permission set and all individual authz: decisions
+      this.logger.log(
+        `Invalidating user permission cache | tenant_id=${tenantId} user_id=${userId}`,
+      );
       await this.cacheService.invalidateUserPermissionCache(tenantId, userId);
     } else {
-      // Role-level change (role permissions modified): all users in this tenant
-      // who hold the affected role may have stale caches. Flush the tenant.
+      this.logger.log(
+        `Invalidating tenant permission cache | tenant_id=${tenantId}`,
+      );
       await this.cacheService.invalidateTenantPermissionCache(tenantId);
     }
   }

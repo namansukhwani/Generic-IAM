@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, Inject, Scope } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Inject,
+  Logger,
+  Scope,
+} from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -15,6 +21,8 @@ import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 
 @Injectable({ scope: Scope.REQUEST })
 export class AssignmentService extends BaseService<UserRoleEntity> {
+  private readonly logger = new Logger(AssignmentService.name);
+
   constructor(
     @InjectRepository(UserRoleEntity)
     protected readonly defaultRepository: Repository<UserRoleEntity>,
@@ -94,6 +102,9 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
     dto: UpdateUserRolesDto,
     actorId: string,
   ): Promise<void> {
+    this.logger.log(
+      `Updating user roles | user_id=${userId} tenant_id=${tenantId} add=${dto.add?.length ?? 0} remove=${dto.remove?.length ?? 0}`,
+    );
     const user = await this.userRepo.findOne({
       where: { id: userId, tenant_id: tenantId },
     });

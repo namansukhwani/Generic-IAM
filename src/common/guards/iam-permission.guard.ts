@@ -2,6 +2,7 @@ import {
   Injectable,
   ExecutionContext,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import {
@@ -15,6 +16,8 @@ import { RequestContext } from '../interfaces/request-context.interface';
 
 @Injectable()
 export class IamPermissionGuard extends PermissionGuard {
+  private readonly logger = new Logger(IamPermissionGuard.name);
+
   constructor(
     protected reflector: Reflector,
     private readonly authorizationService: AuthorizationService,
@@ -67,6 +70,12 @@ export class IamPermissionGuard extends PermissionGuard {
     const hasAllRequired = results.every((r) => r.allowed);
 
     if (!hasAllRequired) {
+      const failedPermissions = requiredPermissions.filter(
+        (_, i) => !results[i].allowed,
+      );
+      this.logger.warn(
+        `DENIED | user_id=${userId} tenant_id=${tenantId} required=[${requiredPermissions.join(',')}] failed=[${failedPermissions.join(',')}]`,
+      );
       throw new ForbiddenException('Insufficient permissions');
     }
 

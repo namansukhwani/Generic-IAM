@@ -10,7 +10,7 @@ COPY packages/iam-sdk/iam-nestjs-sdk-1.0.0.tgz packages/iam-sdk/
 COPY iam-showcase/package*.json iam-showcase/
 
 WORKDIR /usr/src/app/iam-showcase
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 WORKDIR /usr/src/app
 COPY iam-showcase/ iam-showcase/
@@ -32,5 +32,5 @@ RUN npm ci --omit=dev
 
 COPY --from=builder /usr/src/app/iam-showcase/dist ./dist
 
-EXPOSE 3020
+EXPOSE 3010
 CMD ["node", "dist/main"]

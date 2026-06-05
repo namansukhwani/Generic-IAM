@@ -1,4 +1,10 @@
-import { Injectable, BadRequestException, Inject, Scope } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Inject,
+  Logger,
+  Scope,
+} from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -14,6 +20,8 @@ import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto';
 
 @Injectable({ scope: Scope.REQUEST })
 export class PermissionService extends BaseService<PermissionEntity> {
+  private readonly logger = new Logger(PermissionService.name);
+
   constructor(
     @InjectRepository(PermissionEntity)
     protected readonly defaultRepository: Repository<PermissionEntity>,
@@ -36,6 +44,9 @@ export class PermissionService extends BaseService<PermissionEntity> {
     dto: UpdateRolePermissionsDto,
     actorId: string,
   ): Promise<void> {
+    this.logger.log(
+      `Updating role permissions | role_id=${roleId} tenant_id=${tenantId} add=${dto.add?.length ?? 0} remove=${dto.remove?.length ?? 0}`,
+    );
     const role = await this.roleService.findOneForTenant(roleId, tenantId);
 
     if (role.is_system) {

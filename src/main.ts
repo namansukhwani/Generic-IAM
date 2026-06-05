@@ -72,7 +72,7 @@ async function bootstrap() {
   await app.startAllMicroservices();
 
   const port = configService.get<number>('app.port', 3000);
-  await app.listen(port);
+  await app.listen(port, '::');
   logger.log(`IAM Service is running on: http://localhost:${port}/api/v1`);
 }
 void bootstrap();

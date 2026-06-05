@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, Inject, Scope } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Inject,
+  Logger,
+  Scope,
+} from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -16,6 +22,8 @@ import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
 
 @Injectable({ scope: Scope.REQUEST })
 export class AclService extends BaseService<ResourceAclEntity> {
+  private readonly logger = new Logger(AclService.name);
+
   constructor(
     @InjectRepository(ResourceAclEntity)
     protected readonly defaultRepository: Repository<ResourceAclEntity>,
@@ -42,6 +50,9 @@ export class AclService extends BaseService<ResourceAclEntity> {
     dto: CreateAclDto,
     actorId: string,
   ): Promise<ResourceAclEntity> {
+    this.logger.log(
+      `Creating ACL | tenant_id=${tenantId} user_id=${dto.user_id} resource_type=${dto.resource_type} resource_id=${dto.resource_id} permission=${dto.permission}`,
+    );
     const existing = await this.repository.findOne({
       where: {
         tenant_id: tenantId,
@@ -114,6 +125,7 @@ export class AclService extends BaseService<ResourceAclEntity> {
     tenantId: string,
     actorId: string,
   ): Promise<void> {
+    this.logger.log(`Deleting ACL | id=${id} tenant_id=${tenantId}`);
     const acl = await this.repository.findOne({
       where: { id, tenant_id: tenantId },
     });
@@ -163,9 +175,15 @@ export class AclService extends BaseService<ResourceAclEntity> {
     const cached = await this.cacheManager.get<boolean>(cacheKey);
 
     if (cached !== undefined && cached !== null) {
+      this.logger.log(
+        `ACL cache hit | user_id=${dto.user_id} resource_type=${dto.resource_type} resource_id=${dto.resource_id} permission=${dto.permission} result=${cached}`,
+      );
       return { allowed: cached, source: 'cache' };
     }
 
+    this.logger.log(
+      `ACL cache miss — querying DB | user_id=${dto.user_id} resource_type=${dto.resource_type} resource_id=${dto.resource_id} permission=${dto.permission}`,
+    );
     const count = await this.repository.count({
       where: {
         tenant_id: tenantId,

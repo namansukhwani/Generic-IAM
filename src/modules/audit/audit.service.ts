@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditLogEntity } from './entities/audit-log.entity';
@@ -20,6 +25,7 @@ export class AuditEventPayload {
 
 @Injectable()
 export class AuditService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(AuditService.name);
   private eventSubject = new Subject<AuditEventPayload>();
   private subscription: Subscription;
 
@@ -46,17 +52,22 @@ export class AuditService implements OnModuleInit, OnModuleDestroy {
   }
 
   pushEvent(eventPayload: AuditEventPayload) {
+    this.logger.log(
+      `Queuing audit event | event_type=${eventPayload.event_type} tenant_id=${eventPayload.tenant_id ?? 'N/A'}`,
+    );
     this.eventSubject.next(eventPayload);
   }
 
   private async flushBatch(batch: AuditEventPayload[]) {
+    const start = Date.now();
+    this.logger.log(`Flushing audit batch | size=${batch.length}`);
     try {
       const entities = batch.map((event) => {
         return this.auditRepository.create({
           event_type: event.event_type || 'UNKNOWN',
           tenant_id: event.tenant_id,
           actor_id: event.actor_id,
-          actor_type: event.user_id ? 'user' : 'system', // naive inference
+          actor_type: event.user_id ? 'user' : 'system',
           resource: {
             type: event.resource_type,
             id: event.resource_id,
@@ -70,8 +81,14 @@ export class AuditService implements OnModuleInit, OnModuleDestroy {
       });
 
       await this.auditRepository.insert(entities);
+      this.logger.log(
+        `Audit batch flushed | size=${batch.length} duration_ms=${Date.now() - start}`,
+      );
     } catch (err) {
-      console.error('Failed to flush audit logs batch', err);
+      this.logger.error(
+        `Failed to flush audit logs batch | size=${batch.length}`,
+        (err as Error).stack,
+      );
     }
   }
 

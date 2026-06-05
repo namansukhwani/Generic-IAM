@@ -52,6 +52,9 @@ export class EventProducer implements OnModuleInit, OnModuleDestroy {
       ...event,
     };
 
+    this.logger.log(
+      `Emitting event | topic=${topic} event_type=${event.event_type} tenant_id=${event.tenant_id ?? 'system'} event_id=${message.event_id}`,
+    );
     this.client.emit(topic, { key, value: message }).subscribe({
       error: (err: Error) =>
         this.logger.warn(

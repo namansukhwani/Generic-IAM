@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 COPY packages/iam-sdk/ packages/iam-sdk/
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 COPY . .
 RUN npm run build
@@ -19,7 +19,7 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 COPY packages/iam-sdk/ packages/iam-sdk/
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 COPY . .
 CMD ["npm", "run", "start:dev"]

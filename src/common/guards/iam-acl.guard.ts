@@ -2,6 +2,7 @@ import {
   Injectable,
   ExecutionContext,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import {
@@ -16,6 +17,8 @@ import { RequestContext } from '../interfaces/request-context.interface';
 
 @Injectable()
 export class IamAclGuard extends AclGuard {
+  private readonly logger = new Logger(IamAclGuard.name);
+
   constructor(
     protected reflector: Reflector,
     private readonly authorizationService: AuthorizationService,
@@ -70,6 +73,9 @@ export class IamAclGuard extends AclGuard {
     });
 
     if (!result.allowed) {
+      this.logger.warn(
+        `DENIED | user_id=${user.sub} tenant_id=${user.tenant_id} resource_type=${aclMeta.resource} resource_id=${resourceId} permission=${aclMeta.action}`,
+      );
       throw new ForbiddenException('Insufficient resource ACL');
     }
 

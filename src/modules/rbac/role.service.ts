@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
   Inject,
+  Logger,
   Scope,
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
@@ -21,6 +22,8 @@ import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
 
 @Injectable({ scope: Scope.REQUEST })
 export class RoleService extends BaseService<RoleEntity> {
+  private readonly logger = new Logger(RoleService.name);
+
   constructor(
     @InjectRepository(RoleEntity)
     protected readonly defaultRepository: Repository<RoleEntity>,
@@ -44,6 +47,9 @@ export class RoleService extends BaseService<RoleEntity> {
     dto: CreateRoleDto,
     actorId: string,
   ): Promise<RoleEntity> {
+    this.logger.log(
+      `Creating custom role | name=${dto.name} tenant_id=${tenantId} actor_id=${actorId}`,
+    );
     const role = this.repository.create({
       tenant_id: tenantId,
       name: dto.name,
@@ -97,6 +103,9 @@ export class RoleService extends BaseService<RoleEntity> {
     dto: Partial<CreateRoleDto>,
     actorId: string,
   ): Promise<RoleEntity> {
+    this.logger.log(
+      `Updating custom role | id=${id} tenant_id=${tenantId} actor_id=${actorId}`,
+    );
     const role = await this.findOneForTenant(id, tenantId);
 
     if (role.is_system) {
@@ -123,6 +132,9 @@ export class RoleService extends BaseService<RoleEntity> {
     tenantId: string,
     actorId: string,
   ): Promise<void> {
+    this.logger.log(
+      `Deleting custom role | id=${id} tenant_id=${tenantId} actor_id=${actorId}`,
+    );
     const role = await this.findOneForTenant(id, tenantId);
 
     if (role.is_system) {

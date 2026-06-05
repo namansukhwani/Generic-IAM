@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/require-permissions.decorator';
@@ -12,6 +13,8 @@ import { IamAuthzService } from '../iam-authz.service';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
+  protected readonly logger = new Logger(PermissionGuard.name);
+
   constructor(
     protected readonly reflector: Reflector,
     protected authzService: IamAuthzService,
@@ -38,8 +41,6 @@ export class PermissionGuard implements CanActivate {
       return true;
     }
 
-    // In Phase 4/5, inject CacheService/PermissionService to get effective permissions
-    // We iterate over required permissions and check each one
     for (const perm of requiredPermissions) {
       const isAllowed = await this.authzService.isAllowed(
         user.sub,
@@ -47,6 +48,9 @@ export class PermissionGuard implements CanActivate {
         perm,
       );
       if (!isAllowed) {
+        this.logger.warn(
+          `DENIED | user_id=${user.sub} tenant_id=${user.tenant_id} required=${perm}`,
+        );
         throw new ForbiddenException('Insufficient permissions');
       }
     }

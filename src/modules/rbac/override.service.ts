@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, Inject, Scope } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Inject,
+  Logger,
+  Scope,
+} from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -15,6 +21,8 @@ import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
 
 @Injectable({ scope: Scope.REQUEST })
 export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
+  private readonly logger = new Logger(OverrideService.name);
+
   constructor(
     @InjectRepository(UserPermissionOverrideEntity)
     protected readonly defaultRepository: Repository<UserPermissionOverrideEntity>,
@@ -40,6 +48,9 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
     dto: CreateOverrideDto,
     actorId: string,
   ): Promise<UserPermissionOverrideEntity> {
+    this.logger.log(
+      `Adding permission override | user_id=${userId} tenant_id=${tenantId} permission_id=${dto.permission_id} type=${dto.override_type}`,
+    );
     const permission = await this.permissionRepo.findOne({
       where: { id: dto.permission_id },
     });
@@ -85,6 +96,9 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
     tenantId: string,
     actorId: string,
   ): Promise<void> {
+    this.logger.log(
+      `Removing permission override | override_id=${overrideId} user_id=${userId} tenant_id=${tenantId}`,
+    );
     const override = await this.repository.findOne({
       where: { id: overrideId, user_id: userId, tenant_id: tenantId },
     });

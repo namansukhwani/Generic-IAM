@@ -20,7 +20,7 @@ A robust, multi-tenant Identity and Access Management (IAM) service built with N
 Everything runs with a single command. No local database, Redis, or Kafka setup required.
 
 ```bash
-docker compose up --build
+docker-compose up --build
 ```
 
 What happens automatically:
