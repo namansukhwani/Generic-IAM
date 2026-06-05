@@ -286,11 +286,11 @@ expense
 
 ### Action Items
 
-- [ ] **7.1** Add `role_id?: string` to [CreateUserDto](file:///Users/naman.sukhwani/IAM/src/modules/user/dto/create-user.dto.ts) — optional, defaults to system `MEMBER` role
-- [ ] **7.2** Add `DEFAULT_MEMBER` to [system-roles.constant.ts](file:///Users/naman.sukhwani/IAM/src/common/constants/system-roles.constant.ts) if not present
-- [ ] **7.3** Modify [user.service.ts](file:///Users/naman.sukhwani/IAM/src/modules/user/user.service.ts) `createUser()` — after saving user, call `AssignmentService.assignToUser()` with provided `role_id` or default role. Wrap in transaction via `runInTransaction()`
-- [ ] **7.4** Ensure tenant creation flow (`createTenantWithAdmin`) also assigns `TENANT_ADMIN` role to the admin user if not already doing so
-- [ ] **7.5** Add validation: if `role_id` provided, verify it exists and belongs to tenant (or is system role)
+- [x] **7.1** Add `role_id?: string` to [CreateUserDto](file:///Users/naman.sukhwani/IAM/src/modules/user/dto/create-user.dto.ts) — optional, defaults to system `MEMBER` role
+- [x] **7.2** Add `DEFAULT_MEMBER` to [system-roles.constant.ts](file:///Users/naman.sukhwani/IAM/src/common/constants/system-roles.constant.ts) if not present
+- [x] **7.3** Modify [user.service.ts](file:///Users/naman.sukhwani/IAM/src/modules/user/user.service.ts) `createUser()` — after saving user, call `AssignmentService.assignToUser()` with provided `role_id` or default role. Wrap in transaction via `runInTransaction()`
+- [x] **7.4** Ensure tenant creation flow (`createTenantWithAdmin`) also assigns `TENANT_ADMIN` role to the admin user if not already doing so
+- [x] **7.5** Add validation: if `role_id` provided, verify it exists and belongs to tenant (or is system role)
 
 ---
 

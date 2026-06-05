@@ -25,7 +25,7 @@ Co-Authored-By: Antigravity <antigravity@deepmind.google.com>
 
 ## Module Status
 - `tenant`: CRUD implemented.
-- `user`: CRUD, user hierarchy query.
+- `user`: CRUD, user hierarchy query. Auto-assigns `MEMBER` role on creation if no `role_id` is provided.
 - `auth`: JWT strategy, cross-tenant login.
 - `rbac`: Role CRUD, permission assignment. Permissions use hierarchical dot notation (`code`) format.
 - `acl`: Resource ACL CRUD.

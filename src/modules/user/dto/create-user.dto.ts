@@ -26,4 +26,8 @@ export class CreateUserDto {
   @IsOptional()
   @IsUUID()
   manager_id?: string;
+
+  @IsOptional()
+  @IsUUID()
+  role_id?: string;
 }

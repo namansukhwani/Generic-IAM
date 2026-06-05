@@ -14,4 +14,5 @@ export enum SystemRole {
   WORKFLOW_MANAGER = 'WORKFLOW_MANAGER',
   HR_MANAGER = 'HR_MANAGER',
   AUDITOR = 'AUDITOR',
+  MEMBER = 'Employee',
 }

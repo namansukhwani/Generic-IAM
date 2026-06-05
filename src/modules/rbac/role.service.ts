@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { RoleEntity } from './entities/role.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { EventProducer } from '../../event/event.producer';
@@ -69,6 +69,12 @@ export class RoleService extends BaseService<RoleEntity> {
     });
     if (!role) throw new NotFoundException('Role not found');
     return role;
+  }
+
+  async findOneByName(name: string, tenantId: string | null): Promise<RoleEntity | null> {
+    return this.repository.findOne({
+      where: { name, tenant_id: tenantId === null ? IsNull() : tenantId },
+    });
   }
 
   async updateCustomRole(

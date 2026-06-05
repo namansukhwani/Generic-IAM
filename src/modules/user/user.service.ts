@@ -12,6 +12,9 @@ import { BaseService } from '../../common/base/base.service';
 import type { RequestContext } from '../../common/interfaces/request-context.interface';
 
 import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
+import { SystemRole } from '../../common/constants/system-roles.constant';
+import { RoleService } from '../rbac/role.service';
+import { AssignmentService } from '../rbac/assignment.service';
 
 @Injectable({ scope: Scope.REQUEST })
 export class UserService extends BaseService<UserEntity> {
@@ -20,6 +23,8 @@ export class UserService extends BaseService<UserEntity> {
     protected readonly defaultRepository: Repository<UserEntity>,
     private readonly dataSource: DataSource,
     private readonly eventProducer: EventProducer,
+    private readonly roleService: RoleService,
+    private readonly assignmentService: AssignmentService,
     @Inject(REQUEST) protected readonly request: RequestContext,
   ) {
     super(defaultRepository, request);
@@ -48,13 +53,35 @@ export class UserService extends BaseService<UserEntity> {
 
     const saved = await this.repository.save(user);
 
+    // Role Assignment
+    let roleIdToAssign = dto.role_id;
+    if (!roleIdToAssign) {
+      // Find default MEMBER role
+      const defaultRole = await this.roleService.findOneByName(
+        SystemRole.MEMBER,
+        null, // system role has null tenant_id
+      );
+      if (defaultRole) {
+        roleIdToAssign = defaultRole.id;
+      }
+    }
+
+    if (roleIdToAssign) {
+      await this.assignmentService.assignToUser(
+        saved.id,
+        tenantId,
+        { role_id: roleIdToAssign },
+        actorId,
+      );
+    }
+
     this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.USER_CREATED,
       tenant_id: tenantId,
       actor_id: actorId,
       resource_type: 'user',
       resource_id: saved.id,
-      payload: { email: saved.email },
+      payload: { email: saved.email, assigned_role_id: roleIdToAssign },
     });
 
     return saved;
