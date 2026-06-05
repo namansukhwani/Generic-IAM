@@ -42,8 +42,8 @@
 | ID | Assumption | Rationale |
 |----|------------|-----------|
 | P1 | Tenant = single organization (company). Users belong to exactly one tenant. | No cross-tenant user identity in MVP; simplifies isolation model. |
-| P2 | Permission codes use `resource:action` dot notation (e.g., `expense:read`) | Enables wildcard matching (`expense:*`, `*:*`) for hierarchical inheritance. |
-| P3 | Wildcard permissions (`expense:*`, `*:*`) are evaluated at runtime, not persisted as literal strings | Stored only as `expense` + `*` in DB; evaluation logic expands wildcards. |
+| P2 | Permission codes use `resource.sub-resource.action` dot notation (e.g., `expense.claims.approve`, `payroll.read`) | Enables hierarchical wildcard matching (`expense.*`, `*.*`) for role inheritance. Supports up to N levels deep (e.g., `expense.expenses.receipt.upload`). |
+| P3 | Wildcard permissions (`expense.*`, `*.*`) are evaluated at runtime, not persisted as literal strings | Stored only as `expense` + `*` in DB; evaluation logic expands wildcards. |
 | P4 | DENY permission overrides always win over GRANT (explicit deny = absolute deny) | Matches AWS IAM model; prevents privilege escalation via role stacking. |
 | P5 | Users are assigned system roles on creation (`TENANT_USER` auto-assigned) | Ensures every user has baseline permissions; simplifies onboarding. |
 | P6 | ACL entries are owned by IAM centrally, not by individual microservices | Single source of truth for access control; services query IAM for ACL decisions. |
