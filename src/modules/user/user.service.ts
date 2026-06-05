@@ -20,9 +20,16 @@ export class UserService extends BaseService<UserEntity> {
     super(repository);
   }
 
-  async createUser(tenantId: string, dto: CreateUserDto, actorId: string): Promise<UserEntity> {
-    const existing = await this.repository.findOne({ where: { tenant_id: tenantId, email: dto.email } });
-    if (existing) throw new BadRequestException('User with email already exists in tenant');
+  async createUser(
+    tenantId: string,
+    dto: CreateUserDto,
+    actorId: string,
+  ): Promise<UserEntity> {
+    const existing = await this.repository.findOne({
+      where: { tenant_id: tenantId, email: dto.email },
+    });
+    if (existing)
+      throw new BadRequestException('User with email already exists in tenant');
 
     const hashedPassword = await hashPassword(dto.password);
     const user = this.repository.create({
@@ -48,9 +55,15 @@ export class UserService extends BaseService<UserEntity> {
     return saved;
   }
 
-  async updateUser(id: string, dto: UpdateUserDto, tenantId: string, actorId: string): Promise<UserEntity> {
-    const user = await this.findOne({ where: { id } } as any);
-    if (user.tenant_id !== tenantId) throw new BadRequestException('Invalid tenant');
+  async updateUser(
+    id: string,
+    dto: UpdateUserDto,
+    tenantId: string,
+    actorId: string,
+  ): Promise<UserEntity> {
+    const user = await this.findOne({ where: { id } });
+    if (user.tenant_id !== tenantId)
+      throw new BadRequestException('Invalid tenant');
 
     Object.assign(user, dto);
     const updated = await this.repository.save(user);
@@ -67,15 +80,23 @@ export class UserService extends BaseService<UserEntity> {
     return updated;
   }
 
-  async setActivation(id: string, tenantId: string, isActive: boolean, actorId: string): Promise<void> {
-    const user = await this.findOne({ where: { id } } as any);
-    if (user.tenant_id !== tenantId) throw new BadRequestException('Invalid tenant');
+  async setActivation(
+    id: string,
+    tenantId: string,
+    isActive: boolean,
+    actorId: string,
+  ): Promise<void> {
+    const user = await this.findOne({ where: { id } });
+    if (user.tenant_id !== tenantId)
+      throw new BadRequestException('Invalid tenant');
 
     user.is_active = isActive;
     await this.repository.save(user);
 
-    const eventType = isActive ? AuditEventType.USER_ACTIVATED : AuditEventType.USER_DEACTIVATED;
-    
+    const eventType = isActive
+      ? AuditEventType.USER_ACTIVATED
+      : AuditEventType.USER_DEACTIVATED;
+
     // Also emit a general user changed event for cache invalidation
     this.eventProducer.emit('iam.user.changed', {
       event_type: eventType,

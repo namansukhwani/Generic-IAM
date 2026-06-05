@@ -21,11 +21,21 @@ export class AclService extends BaseService<ResourceAclEntity> {
     super(aclRepository);
   }
 
-  private getCacheKey(tenantId: string, userId: string, resourceType: string, resourceId: string, permission: string): string {
+  private getCacheKey(
+    tenantId: string,
+    userId: string,
+    resourceType: string,
+    resourceId: string,
+    permission: string,
+  ): string {
     return `acl:${tenantId}:${userId}:${resourceType}:${resourceId}:${permission}`;
   }
 
-  async createAcl(tenantId: string, dto: CreateAclDto, actorId: string): Promise<ResourceAclEntity> {
+  async createAcl(
+    tenantId: string,
+    dto: CreateAclDto,
+    actorId: string,
+  ): Promise<ResourceAclEntity> {
     const existing = await this.aclRepository.findOne({
       where: {
         tenant_id: tenantId,
@@ -51,7 +61,13 @@ export class AclService extends BaseService<ResourceAclEntity> {
     const saved = await this.aclRepository.save(acl);
 
     // Invalidate cache since permission is added
-    const cacheKey = this.getCacheKey(tenantId, dto.user_id, dto.resource_type, dto.resource_id, dto.permission);
+    const cacheKey = this.getCacheKey(
+      tenantId,
+      dto.user_id,
+      dto.resource_type,
+      dto.resource_id,
+      dto.permission,
+    );
     await this.cacheManager.del(cacheKey);
 
     this.eventProducer.emit('iam.audit', {
@@ -66,9 +82,12 @@ export class AclService extends BaseService<ResourceAclEntity> {
     return saved;
   }
 
-  async findAllAcls(tenantId: string, query: AclQueryDto): Promise<ResourceAclEntity[]> {
+  async findAllAcls(
+    tenantId: string,
+    query: AclQueryDto,
+  ): Promise<ResourceAclEntity[]> {
     const whereClause: any = { tenant_id: tenantId };
-    
+
     if (query.user_id) whereClause.user_id = query.user_id;
     if (query.resource_type) whereClause.resource_type = query.resource_type;
     if (query.resource_id) whereClause.resource_id = query.resource_id;
@@ -76,14 +95,26 @@ export class AclService extends BaseService<ResourceAclEntity> {
     return this.aclRepository.find({ where: whereClause });
   }
 
-  async deleteAcl(id: string, tenantId: string, actorId: string): Promise<void> {
-    const acl = await this.aclRepository.findOne({ where: { id, tenant_id: tenantId } });
+  async deleteAcl(
+    id: string,
+    tenantId: string,
+    actorId: string,
+  ): Promise<void> {
+    const acl = await this.aclRepository.findOne({
+      where: { id, tenant_id: tenantId },
+    });
     if (!acl) throw new NotFoundException('ACL not found');
 
     await this.aclRepository.remove(acl);
 
     // Invalidate cache
-    const cacheKey = this.getCacheKey(tenantId, acl.user_id, acl.resource_type, acl.resource_id, acl.permission);
+    const cacheKey = this.getCacheKey(
+      tenantId,
+      acl.user_id,
+      acl.resource_type,
+      acl.resource_id,
+      acl.permission,
+    );
     await this.cacheManager.del(cacheKey);
 
     this.eventProducer.emit('iam.audit', {
@@ -96,8 +127,17 @@ export class AclService extends BaseService<ResourceAclEntity> {
     });
   }
 
-  async check(tenantId: string, dto: CheckAclDto): Promise<{ allowed: boolean; source: string }> {
-    const cacheKey = this.getCacheKey(tenantId, dto.user_id, dto.resource_type, dto.resource_id, dto.permission);
+  async check(
+    tenantId: string,
+    dto: CheckAclDto,
+  ): Promise<{ allowed: boolean; source: string }> {
+    const cacheKey = this.getCacheKey(
+      tenantId,
+      dto.user_id,
+      dto.resource_type,
+      dto.resource_id,
+      dto.permission,
+    );
     const cached = await this.cacheManager.get<boolean>(cacheKey);
 
     if (cached !== undefined && cached !== null) {

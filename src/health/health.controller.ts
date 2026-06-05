@@ -1,5 +1,10 @@
-import { Controller, Get, Inject } from '@nestjs/common';
-import { HealthCheck, HealthCheckService, TypeOrmHealthIndicator, MicroserviceHealthIndicator } from '@nestjs/terminus';
+import { Controller, Get } from '@nestjs/common';
+import {
+  HealthCheck,
+  HealthCheckService,
+  TypeOrmHealthIndicator,
+  MicroserviceHealthIndicator,
+} from '@nestjs/terminus';
 import { RedisOptions, Transport } from '@nestjs/microservices';
 import { Public } from '../common/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
@@ -26,25 +31,32 @@ export class HealthController {
     return this.health.check([
       // Check PostgreSQL
       () => this.db.pingCheck('database'),
-      
+
       // Check Redis
-      () => this.microservice.pingCheck<RedisOptions>('redis', {
-        transport: Transport.REDIS,
-        options: {
-          host: this.configService.get<string>('redis.host', 'localhost'),
-          port: this.configService.get<number>('redis.port', 6379),
-        },
-      }),
+      () =>
+        this.microservice.pingCheck<RedisOptions>('redis', {
+          transport: Transport.REDIS,
+          options: {
+            host: this.configService.get<string>('redis.host', 'localhost'),
+            port: this.configService.get<number>('redis.port', 6379),
+          },
+        }),
 
       // Check Kafka
-      () => this.microservice.pingCheck('kafka', {
-        transport: Transport.KAFKA,
-        options: {
-          client: {
-            brokers: [this.configService.get<string>('kafka.broker', 'localhost:9092')],
+      () =>
+        this.microservice.pingCheck('kafka', {
+          transport: Transport.KAFKA,
+          options: {
+            client: {
+              brokers: [
+                this.configService.get<string>(
+                  'kafka.broker',
+                  'localhost:9092',
+                ),
+              ],
+            },
           },
-        },
-      }),
+        }),
     ]);
   }
 

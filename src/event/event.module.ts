@@ -17,8 +17,11 @@ import { CacheModule } from '../cache/cache.module';
           transport: Transport.KAFKA,
           options: {
             client: {
-              clientId: configService.get<string>('kafka.clientId') || 'iam-client',
-              brokers: configService.get<string[]>('kafka.brokers') || ['localhost:9092'],
+              clientId:
+                configService.get<string>('kafka.clientId') || 'iam-client',
+              brokers: configService.get<string[]>('kafka.brokers') || [
+                'localhost:9092',
+              ],
             },
             producerOnlyMode: true, // We only use this client for producing
           },

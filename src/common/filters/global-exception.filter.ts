@@ -1,4 +1,10 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 
 @Catch()
@@ -7,7 +13,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    
+
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
@@ -19,20 +25,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         : 'Internal server error';
 
     const details =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : null;
+      exception instanceof HttpException ? exception.getResponse() : null;
 
-    const correlationId = (request as any).correlationId || request.headers['x-correlation-id'];
+    const correlationId =
+      (request as any).correlationId || request.headers['x-correlation-id'];
 
     response.status(status).json({
       success: false,
       error: {
         code: status,
         message,
-        details: typeof details === 'object' && details !== null && 'message' in details 
-          ? (details as any).message 
-          : details,
+        details:
+          typeof details === 'object' &&
+          details !== null &&
+          'message' in details
+            ? (details as any).message
+            : details,
       },
       meta: {
         timestamp: new Date().toISOString(),

@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseUUIDPipe,
+  Query,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { TenantService } from './tenant.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
@@ -9,8 +19,6 @@ import { RequirePermissions } from '../../common/decorators/require-permissions.
 import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.constant';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
-import { BaseController } from '../../common/base/base.controller';
-import { TenantEntity } from './entities/tenant.entity';
 
 @ApiTags('Tenants')
 @ApiBearerAuth()
@@ -21,7 +29,10 @@ export class TenantController {
   @Post()
   @ApiOperation({ summary: 'Create a new tenant with initial admin user' })
   @IdentityTypes(IdentityType.SUPER_ADMIN)
-  async create(@Body() createTenantDto: CreateTenantDto, @CurrentUser() user: JwtPayload) {
+  async create(
+    @Body() createTenantDto: CreateTenantDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
     return this.tenantService.createTenantWithAdmin(createTenantDto, user.sub);
   }
 
@@ -41,7 +52,7 @@ export class TenantController {
   @IdentityTypes(IdentityType.SUPER_ADMIN, IdentityType.USER)
   @RequirePermissions(SYSTEM_PERMISSIONS.TENANT.READ)
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.tenantService.findOne({ where: { id } } as any);
+    return this.tenantService.findOne({ where: { id } });
   }
 
   @Patch(':id')
@@ -59,7 +70,10 @@ export class TenantController {
   @Delete(':id')
   @ApiOperation({ summary: 'Deactivate tenant' })
   @IdentityTypes(IdentityType.SUPER_ADMIN)
-  async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
     await this.tenantService.deactivateTenant(id, user.sub);
     return { success: true };
   }

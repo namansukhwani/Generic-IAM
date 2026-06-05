@@ -20,7 +20,7 @@ export class AuditService implements OnModuleInit, OnModuleDestroy {
     this.subscription = this.eventSubject
       .pipe(
         bufferTime(1000, null, 100),
-        filter((batch) => batch.length > 0)
+        filter((batch) => batch.length > 0),
       )
       .subscribe((batch) => {
         this.flushBatch(batch);
@@ -39,7 +39,7 @@ export class AuditService implements OnModuleInit, OnModuleDestroy {
 
   private async flushBatch(batch: any[]) {
     try {
-      const entities = batch.map(event => {
+      const entities = batch.map((event) => {
         return this.auditRepository.create({
           event_type: event.event_type || 'UNKNOWN',
           tenant_id: event.tenant_id,
@@ -64,7 +64,8 @@ export class AuditService implements OnModuleInit, OnModuleDestroy {
   }
 
   async queryLogs(query: AuditQueryDto): Promise<AuditLogEntity[]> {
-    const qb = this.auditRepository.createQueryBuilder('audit')
+    const qb = this.auditRepository
+      .createQueryBuilder('audit')
       .orderBy('audit.created_at', 'DESC')
       .limit(100);
 
@@ -75,16 +76,24 @@ export class AuditService implements OnModuleInit, OnModuleDestroy {
       qb.andWhere('audit.actor_id = :actorId', { actorId: query.actor_id });
     }
     if (query.event_type) {
-      qb.andWhere('audit.event_type = :eventType', { eventType: query.event_type });
+      qb.andWhere('audit.event_type = :eventType', {
+        eventType: query.event_type,
+      });
     }
     if (query.resource_type) {
-      qb.andWhere(`audit.resource->>'type' = :resourceType`, { resourceType: query.resource_type });
+      qb.andWhere(`audit.resource->>'type' = :resourceType`, {
+        resourceType: query.resource_type,
+      });
     }
     if (query.correlation_id) {
-      qb.andWhere(`audit.metadata->>'correlation_id' = :correlationId`, { correlationId: query.correlation_id });
+      qb.andWhere(`audit.metadata->>'correlation_id' = :correlationId`, {
+        correlationId: query.correlation_id,
+      });
     }
     if (query.date_from) {
-      qb.andWhere('audit.created_at >= :dateFrom', { dateFrom: query.date_from });
+      qb.andWhere('audit.created_at >= :dateFrom', {
+        dateFrom: query.date_from,
+      });
     }
     if (query.date_to) {
       qb.andWhere('audit.created_at <= :dateTo', { dateTo: query.date_to });

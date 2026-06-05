@@ -1,13 +1,18 @@
-import { PipeTransform, Injectable, ArgumentMetadata, BadRequestException } from '@nestjs/common';
+import {
+  PipeTransform,
+  Injectable,
+  ArgumentMetadata,
+  BadRequestException,
+} from '@nestjs/common';
 
 @Injectable()
 export class TenantValidationPipe implements PipeTransform {
-  async transform(value: any, metadata: ArgumentMetadata) {
+  public async transform(value: any, _metadata: ArgumentMetadata) {
     if (!value) {
       return value;
     }
-    
-    // Note: Assuming `value` contains tenant_id. 
+
+    // Note: Assuming `value` contains tenant_id.
     // In Phase 4, we will use TenantService / Cache to validate the tenant_id.
     const tenantId = value.tenant_id;
     if (tenantId) {

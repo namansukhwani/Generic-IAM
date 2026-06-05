@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -21,7 +25,10 @@ export class SuperAdminService {
     private readonly auditService: AuditService,
   ) {}
 
-  async impersonate(dto: ImpersonateDto, superAdminId: string): Promise<{ access_token: string; expires_in: number }> {
+  async impersonate(
+    dto: ImpersonateDto,
+    superAdminId: string,
+  ): Promise<{ access_token: string; expires_in: number }> {
     // Note: Assuming a BYPASSRLS connection or query here. Using default repo.
     const targetUser = await this.userRepository.findOne({
       where: { id: dto.user_id, tenant_id: dto.tenant_id },
@@ -41,7 +48,9 @@ export class SuperAdminService {
     };
 
     const accessTtl = 1800; // 30 mins
-    const access_token = this.jwtService.sign(payload, { expiresIn: accessTtl });
+    const access_token = this.jwtService.sign(payload, {
+      expiresIn: accessTtl,
+    });
 
     this.eventProducer.emit('iam.audit', {
       event_type: 'IMPERSONATION_STARTED',

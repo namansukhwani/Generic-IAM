@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -8,7 +12,10 @@ import { RefreshTokenEntity } from './entities/refresh-token.entity';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { TokenResponseDto } from './dto/token-response.dto';
-import { comparePassword, hashPassword } from '../../common/utils/password.util';
+import {
+  comparePassword,
+  hashPassword,
+} from '../../common/utils/password.util';
 import { EventProducer } from '../../event/event.producer';
 import { AuditEventType } from '../../common/constants/audit-events.constant';
 import * as crypto from 'crypto';
@@ -26,24 +33,36 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto): Promise<TokenResponseDto> {
-    const user = await this.userRepository.findOne({ where: { email: dto.email } });
+    const user = await this.userRepository.findOne({
+      where: { email: dto.email },
+    });
     if (!user) {
-      this.eventProducer.emit('iam.audit', { event_type: AuditEventType.AUTH_LOGIN_FAILED, payload: { email: dto.email, reason: 'User not found' } });
+      this.eventProducer.emit('iam.audit', {
+        event_type: AuditEventType.AUTH_LOGIN_FAILED,
+        payload: { email: dto.email, reason: 'User not found' },
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     if (!user.is_active) {
-      this.eventProducer.emit('iam.audit', { event_type: AuditEventType.AUTH_LOGIN_FAILED, payload: { email: dto.email, reason: 'User inactive' } });
+      this.eventProducer.emit('iam.audit', {
+        event_type: AuditEventType.AUTH_LOGIN_FAILED,
+        payload: { email: dto.email, reason: 'User inactive' },
+      });
       throw new UnauthorizedException('User account is inactive');
     }
 
     const isMatch = await comparePassword(dto.password, user.password_hash);
     if (!isMatch) {
-      this.eventProducer.emit('iam.audit', { event_type: AuditEventType.AUTH_LOGIN_FAILED, payload: { email: dto.email, reason: 'Invalid password' } });
+      this.eventProducer.emit('iam.audit', {
+        event_type: AuditEventType.AUTH_LOGIN_FAILED,
+        payload: { email: dto.email, reason: 'Invalid password' },
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const { access_token, refresh_token, expires_in } = await this.generateTokens(user);
+    const { access_token, refresh_token, expires_in } =
+      await this.generateTokens(user);
 
     this.eventProducer.emit('iam.audit', {
       event_type: AuditEventType.AUTH_LOGIN_SUCCESS,
@@ -89,7 +108,8 @@ export class AuthService {
     await this.refreshTokenRepository.delete(validToken.id);
 
     // Generate new pair
-    const { access_token, refresh_token, expires_in } = await this.generateTokens(user);
+    const { access_token, refresh_token, expires_in } =
+      await this.generateTokens(user);
 
     this.eventProducer.emit('iam.audit', {
       event_type: AuditEventType.AUTH_TOKEN_REFRESHED,
@@ -125,10 +145,13 @@ export class AuthService {
     };
 
     const accessTtl = this.configService.get<number>('jwt.accessTtl') || 900;
-    const refreshTtl = this.configService.get<number>('jwt.refreshTtl') || 604800;
+    const refreshTtl =
+      this.configService.get<number>('jwt.refreshTtl') || 604800;
 
-    const access_token = this.jwtService.sign(payload, { expiresIn: accessTtl });
-    
+    const access_token = this.jwtService.sign(payload, {
+      expiresIn: accessTtl,
+    });
+
     // Generate secure random string for refresh token
     const plainRefreshToken = crypto.randomBytes(40).toString('hex');
     const hashedRefreshToken = await hashPassword(plainRefreshToken);
@@ -141,7 +164,7 @@ export class AuthService {
       token_hash: hashedRefreshToken,
       expires_at: expiresAt,
     });
-    
+
     await this.refreshTokenRepository.save(refreshTokenEntity);
 
     return {

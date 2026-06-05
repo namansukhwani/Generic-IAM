@@ -1,10 +1,9 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class EnableRLS1780599504679 implements MigrationInterface {
-
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        // Create superadmin role
-        await queryRunner.query(`
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    // Create superadmin role
+    await queryRunner.query(`
             DO $$
             BEGIN
                 IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'iam_superadmin') THEN
@@ -13,30 +12,41 @@ export class EnableRLS1780599504679 implements MigrationInterface {
             END $$;
         `);
 
-        // Enable RLS
-        const tables = ['users', 'roles', 'user_roles', 'role_permissions', 'resource_acls', 'user_permission_overrides'];
-        for (const table of tables) {
-            await queryRunner.query(`ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY;`);
-            await queryRunner.query(`ALTER TABLE "${table}" FORCE ROW LEVEL SECURITY;`); // Ensure owner also respects it unless bypassed
-        }
+    // Enable RLS
+    const tables = [
+      'users',
+      'roles',
+      'user_roles',
+      'role_permissions',
+      'resource_acls',
+      'user_permission_overrides',
+    ];
+    for (const table of tables) {
+      await queryRunner.query(
+        `ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY;`,
+      );
+      await queryRunner.query(
+        `ALTER TABLE "${table}" FORCE ROW LEVEL SECURITY;`,
+      ); // Ensure owner also respects it unless bypassed
+    }
 
-        // Policies
-        await queryRunner.query(`
+    // Policies
+    await queryRunner.query(`
             CREATE POLICY tenant_isolation ON users
             USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE POLICY tenant_isolation ON roles
             USING (is_system = true OR tenant_id = current_setting('app.current_tenant', true)::uuid);
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE POLICY tenant_isolation ON user_roles
             USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE POLICY tenant_isolation ON role_permissions
             USING (
                 role_id IN (
@@ -46,26 +56,36 @@ export class EnableRLS1780599504679 implements MigrationInterface {
             );
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE POLICY tenant_isolation ON resource_acls
             USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE POLICY tenant_isolation ON user_permission_overrides
             USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
         `);
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    const tables = [
+      'users',
+      'roles',
+      'user_roles',
+      'role_permissions',
+      'resource_acls',
+      'user_permission_overrides',
+    ];
+
+    for (const table of tables) {
+      await queryRunner.query(
+        `DROP POLICY IF EXISTS tenant_isolation ON "${table}";`,
+      );
+      await queryRunner.query(
+        `ALTER TABLE "${table}" DISABLE ROW LEVEL SECURITY;`,
+      );
     }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        const tables = ['users', 'roles', 'user_roles', 'role_permissions', 'resource_acls', 'user_permission_overrides'];
-        
-        for (const table of tables) {
-            await queryRunner.query(`DROP POLICY IF EXISTS tenant_isolation ON "${table}";`);
-            await queryRunner.query(`ALTER TABLE "${table}" DISABLE ROW LEVEL SECURITY;`);
-        }
-        
-        await queryRunner.query(`DROP ROLE IF EXISTS iam_superadmin;`);
-    }
-
+    await queryRunner.query(`DROP ROLE IF EXISTS iam_superadmin;`);
+  }
 }

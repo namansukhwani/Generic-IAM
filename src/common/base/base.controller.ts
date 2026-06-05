@@ -7,7 +7,10 @@ export class BaseController<T extends ObjectLiteral> {
   constructor(protected readonly baseService: BaseService<T>) {}
 
   @Get()
-  async findAll(@Query('page') page: number = 1, @Query('limit') limit: number = 10) {
+  async findAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
     return this.baseService.findPaginated(page, limit);
   }
 

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { TenantEntity } from './entities/tenant.entity';
@@ -25,7 +29,10 @@ export class TenantService extends BaseService<TenantEntity> {
     super(repository);
   }
 
-  async createTenantWithAdmin(dto: CreateTenantDto, actorId: string): Promise<TenantEntity> {
+  async createTenantWithAdmin(
+    dto: CreateTenantDto,
+    actorId: string,
+  ): Promise<TenantEntity> {
     const { savedTenant, savedUser } = await runInTransaction(
       this.dataSource,
       async (manager) => {
@@ -34,7 +41,9 @@ export class TenantService extends BaseService<TenantEntity> {
           where: [{ name: dto.name }, { slug: dto.slug }],
         });
         if (existingTenant) {
-          throw new BadRequestException('Tenant with same name or slug already exists');
+          throw new BadRequestException(
+            'Tenant with same name or slug already exists',
+          );
         }
 
         // 2. Create Tenant
@@ -60,7 +69,7 @@ export class TenantService extends BaseService<TenantEntity> {
         const adminRole = await manager.findOne(RoleEntity, {
           where: { name: SystemRole.TENANT_ADMIN, is_system: true },
         });
-        
+
         if (adminRole) {
           // 5. Assign Role
           const userRole = manager.create(UserRoleEntity, {
@@ -72,7 +81,7 @@ export class TenantService extends BaseService<TenantEntity> {
         }
 
         return { savedTenant, savedUser };
-      }
+      },
     );
 
     // Emit Events
@@ -88,8 +97,11 @@ export class TenantService extends BaseService<TenantEntity> {
     return savedTenant;
   }
 
-
-  async updateTenant(id: string, dto: UpdateTenantDto, actorId: string): Promise<TenantEntity> {
+  async updateTenant(
+    id: string,
+    dto: UpdateTenantDto,
+    actorId: string,
+  ): Promise<TenantEntity> {
     const tenant = await this.update(id, dto);
     this.eventProducer.emit('iam.audit', {
       event_type: AuditEventType.TENANT_UPDATED,
@@ -103,7 +115,7 @@ export class TenantService extends BaseService<TenantEntity> {
   }
 
   async deactivateTenant(id: string, actorId: string): Promise<void> {
-    await this.update(id, { is_active: false } as any);
+    await this.update(id, { is_active: false });
     this.eventProducer.emit('iam.audit', {
       event_type: AuditEventType.TENANT_DEACTIVATED,
       tenant_id: id,

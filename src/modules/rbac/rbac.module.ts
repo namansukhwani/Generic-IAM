@@ -30,22 +30,13 @@ import { EventModule } from '../../event/event.module';
     ]),
     EventModule,
   ],
-  controllers: [
-    RoleController,
-    PermissionController,
-    AssignmentController,
-  ],
+  controllers: [RoleController, PermissionController, AssignmentController],
   providers: [
     RoleService,
     PermissionService,
     AssignmentService,
     OverrideService,
   ],
-  exports: [
-    RoleService,
-    PermissionService,
-    AssignmentService,
-    OverrideService,
-  ],
+  exports: [RoleService, PermissionService, AssignmentService, OverrideService],
 })
 export class RbacModule {}

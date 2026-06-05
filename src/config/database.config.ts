@@ -22,7 +22,9 @@ export default registerAs('database', () => {
 
   const { error, value } = schema.validate(values, { abortEarly: false });
   if (error) {
-    throw new Error(`Database configuration validation error: ${error.message}`);
+    throw new Error(
+      `Database configuration validation error: ${error.message}`,
+    );
   }
 
   return value;

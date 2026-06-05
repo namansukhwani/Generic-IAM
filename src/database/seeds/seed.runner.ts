@@ -8,14 +8,14 @@ import { seedSuperAdmin } from './super-admin.seed';
 
 async function bootstrap() {
   console.log('🚀 Starting database seeding...');
-  
+
   // We initialize the Nest application context to leverage dependency injection
   // and get the configured DataSource and ConfigService.
   const app = await NestFactory.createApplicationContext(AppModule);
-  
+
   const dataSource = app.get(DataSource);
   const configService = app.get(ConfigService);
-  
+
   try {
     await seedPermissions(dataSource);
     await seedRoles(dataSource);

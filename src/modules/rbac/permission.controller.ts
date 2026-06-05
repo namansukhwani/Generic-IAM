@@ -1,4 +1,11 @@
-import { Controller, Get, Post, Delete, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { PermissionService } from './permission.service';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -17,18 +24,28 @@ export class PermissionController {
   async assignPermissionToRole(
     @Param('roleId') roleId: string,
     @Param('permissionId') permissionId: string,
-    @CurrentUser() user: any
+    @CurrentUser() user: any,
   ) {
-    return this.permissionService.assignToRole(roleId, user.tenantId, permissionId, user.userId);
+    return this.permissionService.assignToRole(
+      roleId,
+      user.tenantId,
+      permissionId,
+      user.userId,
+    );
   }
 
   @Delete('roles/:roleId/permissions/:permissionId')
   async removePermissionFromRole(
     @Param('roleId') roleId: string,
     @Param('permissionId') permissionId: string,
-    @CurrentUser() user: any
+    @CurrentUser() user: any,
   ) {
-    await this.permissionService.removeFromRole(roleId, user.tenantId, permissionId, user.userId);
+    await this.permissionService.removeFromRole(
+      roleId,
+      user.tenantId,
+      permissionId,
+      user.userId,
+    );
     return { success: true };
   }
 }

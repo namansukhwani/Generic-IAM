@@ -7,7 +7,11 @@ import { DataSource, EntityManager } from 'typeorm';
 export async function runInTransaction<T>(
   dataSource: DataSource,
   operation: (manager: EntityManager) => Promise<T>,
-  isolationLevel?: 'READ UNCOMMITTED' | 'READ COMMITTED' | 'REPEATABLE READ' | 'SERIALIZABLE',
+  isolationLevel?:
+    | 'READ UNCOMMITTED'
+    | 'READ COMMITTED'
+    | 'REPEATABLE READ'
+    | 'SERIALIZABLE',
 ): Promise<T> {
   const queryRunner = dataSource.createQueryRunner();
   await queryRunner.connect();

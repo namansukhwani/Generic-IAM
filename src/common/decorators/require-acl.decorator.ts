@@ -8,5 +8,8 @@ export interface AclMetadata {
   paramKey?: string; // which route parameter contains the resource ID
 }
 
-export const RequireAcl = (resource: string, action: string, paramKey: string = 'id') => 
-  SetMetadata(ACL_KEY, { resource, action, paramKey } as AclMetadata);
+export const RequireAcl = (
+  resource: string,
+  action: string,
+  paramKey: string = 'id',
+) => SetMetadata(ACL_KEY, { resource, action, paramKey });

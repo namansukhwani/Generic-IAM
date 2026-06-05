@@ -3,12 +3,29 @@ import { PermissionEntity } from '../../modules/rbac/entities/permission.entity'
 
 export async function seedPermissions(dataSource: DataSource) {
   const permissionRepo = dataSource.getRepository(PermissionEntity);
-  
+
   const resources = [
-    'expense', 'payroll', 'invoice', 'report', 'workflow', 
-    'notification', 'user', 'role', 'acl', 'tenant', 'audit'
+    'expense',
+    'payroll',
+    'invoice',
+    'report',
+    'workflow',
+    'notification',
+    'user',
+    'role',
+    'acl',
+    'tenant',
+    'audit',
   ];
-  const actions = ['read', 'write', 'delete', 'approve', 'export', 'execute', 'assign'];
+  const actions = [
+    'read',
+    'write',
+    'delete',
+    'approve',
+    'export',
+    'execute',
+    'assign',
+  ];
 
   const permissionsToSeed = [];
 
@@ -29,7 +46,9 @@ export async function seedPermissions(dataSource: DataSource) {
   }
 
   for (const perm of permissionsToSeed) {
-    const existing = await permissionRepo.findOne({ where: { action: perm.action } });
+    const existing = await permissionRepo.findOne({
+      where: { action: perm.action },
+    });
     if (!existing) {
       await permissionRepo.save(permissionRepo.create(perm));
     }

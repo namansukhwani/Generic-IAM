@@ -13,7 +13,10 @@ export class TenantContextMiddleware implements NestMiddleware {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
       try {
-        const payloadStr = Buffer.from(token.split('.')[1], 'base64').toString();
+        const payloadStr = Buffer.from(
+          token.split('.')[1],
+          'base64',
+        ).toString();
         const payload = JSON.parse(payloadStr);
         tenantId = payload.tenant_id;
       } catch (e) {

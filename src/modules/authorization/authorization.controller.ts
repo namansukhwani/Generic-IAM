@@ -10,7 +10,7 @@ export class AuthorizationController {
   @Post('check')
   @HttpCode(HttpStatus.OK)
   async check(@Body() dto: CheckAuthzDto) {
-    // Note: Can be called with user JWT or internal network trust. No guard for now, 
+    // Note: Can be called with user JWT or internal network trust. No guard for now,
     // assuming network level security or a specific service guard handles this.
     return this.authorizationService.check(dto);
   }

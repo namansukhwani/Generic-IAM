@@ -51,15 +51,23 @@ async function bootstrap() {
     transport: Transport.KAFKA,
     options: {
       client: {
-        brokers: configService.get<string[]>('kafka.brokers', ['localhost:9092']),
-        clientId: configService.get<string>('kafka.clientId', 'iam-service-client'),
+        brokers: configService.get<string[]>('kafka.brokers', [
+          'localhost:9092',
+        ]),
+        clientId: configService.get<string>(
+          'kafka.clientId',
+          'iam-service-client',
+        ),
       },
       consumer: {
-        groupId: configService.get<string>('kafka.groupId', 'iam-service-group'),
+        groupId: configService.get<string>(
+          'kafka.groupId',
+          'iam-service-group',
+        ),
       },
     },
   });
-  
+
   await app.startAllMicroservices();
 
   const port = configService.get<number>('app.port', 3000);

@@ -6,10 +6,7 @@ import { AclController } from './acl.controller';
 import { EventModule } from '../../event/event.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([ResourceAclEntity]),
-    EventModule,
-  ],
+  imports: [TypeOrmModule.forFeature([ResourceAclEntity]), EventModule],
   controllers: [AclController],
   providers: [AclService],
   exports: [AclService],

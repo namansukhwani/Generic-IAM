@@ -1,4 +1,7 @@
-import { computeEffectivePermissions, hasPermission } from './permission-matcher.util';
+import {
+  computeEffectivePermissions,
+  hasPermission,
+} from './permission-matcher.util';
 
 describe('Permission Matcher Utility', () => {
   describe('computeEffectivePermissions', () => {
@@ -8,7 +11,7 @@ describe('Permission Matcher Utility', () => {
       const denies = new Set(['expense:write']);
 
       const effective = computeEffectivePermissions(rolePerms, grants, denies);
-      
+
       expect(effective.has('expense:read')).toBe(true);
       expect(effective.has('expense:write')).toBe(false);
       expect(effective.has('report:read')).toBe(true);
@@ -22,7 +25,7 @@ describe('Permission Matcher Utility', () => {
       const denies = new Set(['expense:write']);
 
       const effective = computeEffectivePermissions(rolePerms, grants, denies);
-      
+
       expect(effective.has('expense:write')).toBe(false);
     });
   });

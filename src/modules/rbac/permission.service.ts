@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PermissionEntity } from './entities/permission.entity';
@@ -25,14 +29,23 @@ export class PermissionService extends BaseService<PermissionEntity> {
     return this.permissionRepository.find();
   }
 
-  async assignToRole(roleId: string, tenantId: string, permissionId: string, actorId: string): Promise<RolePermissionEntity> {
+  async assignToRole(
+    roleId: string,
+    tenantId: string,
+    permissionId: string,
+    actorId: string,
+  ): Promise<RolePermissionEntity> {
     const role = await this.roleService.findOneForTenant(roleId, tenantId);
-    
+
     if (role.is_system) {
-      throw new BadRequestException('Cannot modify permissions of system roles');
+      throw new BadRequestException(
+        'Cannot modify permissions of system roles',
+      );
     }
 
-    const permission = await this.permissionRepository.findOne({ where: { id: permissionId } });
+    const permission = await this.permissionRepository.findOne({
+      where: { id: permissionId },
+    });
     if (!permission) throw new NotFoundException('Permission not found');
 
     const existing = await this.rolePermissionRepository.findOne({
@@ -68,11 +81,18 @@ export class PermissionService extends BaseService<PermissionEntity> {
     return saved;
   }
 
-  async removeFromRole(roleId: string, tenantId: string, permissionId: string, actorId: string): Promise<void> {
+  async removeFromRole(
+    roleId: string,
+    tenantId: string,
+    permissionId: string,
+    actorId: string,
+  ): Promise<void> {
     const role = await this.roleService.findOneForTenant(roleId, tenantId);
-    
+
     if (role.is_system) {
-      throw new BadRequestException('Cannot modify permissions of system roles');
+      throw new BadRequestException(
+        'Cannot modify permissions of system roles',
+      );
     }
 
     const mapping = await this.rolePermissionRepository.findOne({

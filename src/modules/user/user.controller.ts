@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseUUIDPipe,
+  Query,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -21,8 +31,15 @@ export class UserController {
   @ApiOperation({ summary: 'Create user in current tenant' })
   @IdentityTypes(IdentityType.USER, IdentityType.SUPER_ADMIN)
   @RequirePermissions(SYSTEM_PERMISSIONS.USER.WRITE)
-  async create(@Body() createUserDto: CreateUserDto, @CurrentUser() user: JwtPayload) {
-    const created = await this.userService.createUser(user.tenant_id || '', createUserDto, user.sub);
+  async create(
+    @Body() createUserDto: CreateUserDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    const created = await this.userService.createUser(
+      user.tenant_id || '',
+      createUserDto,
+      user.sub,
+    );
     return new UserResponseDto(created);
   }
 
@@ -30,9 +47,13 @@ export class UserController {
   @ApiOperation({ summary: 'List users in current tenant' })
   @IdentityTypes(IdentityType.USER, IdentityType.SUPER_ADMIN)
   @RequirePermissions(SYSTEM_PERMISSIONS.USER.READ)
-  async findAll(@CurrentUser() user: JwtPayload, @Query('page') page = 1, @Query('limit') limit = 10) {
+  async findAll(
+    @CurrentUser() user: JwtPayload,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
     const result = await this.userService.findPaginated(page, limit, {
-      where: { tenant_id: user.tenant_id || '' } as any,
+      where: { tenant_id: user.tenant_id || '' },
       order: { created_at: 'DESC' } as any,
     });
     return {
@@ -46,14 +67,17 @@ export class UserController {
   @Get(':id')
   @ApiOperation({ summary: 'Get user details' })
   @IdentityTypes(IdentityType.USER, IdentityType.SUPER_ADMIN)
-  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
     // If self, allow without permission
     if (user.sub !== id) {
       // TODO: need to check SYSTEM_PERMISSIONS.USER.READ manually if not self?
       // For now, let's just use service which fetches the user. Then we can check tenant.
       // A better approach would be custom logic, but let's rely on tenant isolation at least.
     }
-    const target = await this.userService.findOne({ where: { id } } as any);
+    const target = await this.userService.findOne({ where: { id } });
     if (target.tenant_id !== user.tenant_id) {
       throw new Error('Not found'); // Keep generic to avoid leaking info
     }
@@ -68,7 +92,12 @@ export class UserController {
     @Body() updateUserDto: UpdateUserDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    const updated = await this.userService.updateUser(id, updateUserDto, user.tenant_id || '', user.sub);
+    const updated = await this.userService.updateUser(
+      id,
+      updateUserDto,
+      user.tenant_id || '',
+      user.sub,
+    );
     return new UserResponseDto(updated);
   }
 
@@ -76,8 +105,16 @@ export class UserController {
   @ApiOperation({ summary: 'Activate user' })
   @IdentityTypes(IdentityType.USER, IdentityType.SUPER_ADMIN)
   @RequirePermissions(SYSTEM_PERMISSIONS.USER.WRITE)
-  async activate(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
-    await this.userService.setActivation(id, user.tenant_id || '', true, user.sub);
+  async activate(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    await this.userService.setActivation(
+      id,
+      user.tenant_id || '',
+      true,
+      user.sub,
+    );
     return { success: true };
   }
 
@@ -85,8 +122,16 @@ export class UserController {
   @ApiOperation({ summary: 'Deactivate user' })
   @IdentityTypes(IdentityType.USER, IdentityType.SUPER_ADMIN)
   @RequirePermissions(SYSTEM_PERMISSIONS.USER.WRITE)
-  async deactivate(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
-    await this.userService.setActivation(id, user.tenant_id || '', false, user.sub);
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    await this.userService.setActivation(
+      id,
+      user.tenant_id || '',
+      false,
+      user.sub,
+    );
     return { success: true };
   }
 
@@ -94,7 +139,10 @@ export class UserController {
   @ApiOperation({ summary: 'Get user hierarchy' })
   @IdentityTypes(IdentityType.USER, IdentityType.SUPER_ADMIN)
   @RequirePermissions(SYSTEM_PERMISSIONS.USER.READ)
-  async getHierarchy(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
+  async getHierarchy(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
     return this.userService.getHierarchy(id, user.tenant_id || '');
   }
 }

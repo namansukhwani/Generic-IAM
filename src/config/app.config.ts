@@ -10,8 +10,12 @@ export default registerAs('app', () => {
 
   const schema = Joi.object({
     port: Joi.number().default(3000),
-    env: Joi.string().valid('development', 'production', 'test').default('development'),
-    logLevel: Joi.string().valid('error', 'warn', 'info', 'debug', 'verbose').default('info'),
+    env: Joi.string()
+      .valid('development', 'production', 'test')
+      .default('development'),
+    logLevel: Joi.string()
+      .valid('error', 'warn', 'info', 'debug', 'verbose')
+      .default('info'),
   });
 
   const { error, value } = schema.validate(values, { abortEarly: false });

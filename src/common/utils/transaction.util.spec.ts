@@ -23,7 +23,7 @@ describe('runInTransaction Utility', () => {
 
     mockDataSource = {
       createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner),
-    } as unknown as DataSource;
+    };
   });
 
   it('should successfully run work, commit, and release query runner', async () => {
@@ -46,7 +46,9 @@ describe('runInTransaction Utility', () => {
     const workError = new Error('Database write error');
     const work = jest.fn().mockRejectedValue(workError);
 
-    await expect(runInTransaction(mockDataSource, work)).rejects.toThrow('Database write error');
+    await expect(runInTransaction(mockDataSource, work)).rejects.toThrow(
+      'Database write error',
+    );
 
     expect(mockDataSource.createQueryRunner).toHaveBeenCalledTimes(1);
     expect(mockQueryRunner.connect).toHaveBeenCalledTimes(1);
@@ -62,6 +64,8 @@ describe('runInTransaction Utility', () => {
 
     await runInTransaction(mockDataSource, work, 'SERIALIZABLE');
 
-    expect(mockQueryRunner.startTransaction).toHaveBeenCalledWith('SERIALIZABLE');
+    expect(mockQueryRunner.startTransaction).toHaveBeenCalledWith(
+      'SERIALIZABLE',
+    );
   });
 });

@@ -3,7 +3,9 @@ import * as Joi from 'joi';
 
 export default registerAs('kafka', () => {
   const values = {
-    brokers: process.env.KAFKA_BROKERS ? process.env.KAFKA_BROKERS.split(',') : [],
+    brokers: process.env.KAFKA_BROKERS
+      ? process.env.KAFKA_BROKERS.split(',')
+      : [],
     clientId: process.env.KAFKA_CLIENT_ID,
     groupId: process.env.KAFKA_GROUP_ID,
   };

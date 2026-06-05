@@ -19,7 +19,9 @@ export class AuthorizationService {
     return `authz:${dto.tenant_id}:${dto.user_id}:${dto.permission}:${dto.resource_type || '*'}:${dto.resource_id || '*'}`;
   }
 
-  async check(dto: CheckAuthzDto): Promise<{ allowed: boolean; source: string; evaluated_at: string }> {
+  async check(
+    dto: CheckAuthzDto,
+  ): Promise<{ allowed: boolean; source: string; evaluated_at: string }> {
     const cacheKey = this.getCacheKey(dto);
     const cached = await this.cacheManager.get<boolean>(cacheKey);
 
@@ -30,8 +32,12 @@ export class AuthorizationService {
     }
 
     // 1. Check RBAC
-    const effectivePermissions = await this.overrideService.getEffectivePermissions(dto.user_id, dto.tenant_id);
-    let allowed = effectivePermissions.some(p => p.action === dto.permission);
+    const effectivePermissions =
+      await this.overrideService.getEffectivePermissions(
+        dto.user_id,
+        dto.tenant_id,
+      );
+    let allowed = effectivePermissions.some((p) => p.action === dto.permission);
     let source = 'rbac';
 
     // 2. Check ACL if RBAC denied and resource is specified
@@ -52,8 +58,12 @@ export class AuthorizationService {
     return { allowed, source: allowed ? source : 'none', evaluated_at: now };
   }
 
-  async checkBatch(dtos: CheckAuthzDto[]): Promise<Array<{ allowed: boolean; source: string; evaluated_at: string }>> {
-    const results = await Promise.all(dtos.map(dto => this.check(dto)));
+  async checkBatch(
+    dtos: CheckAuthzDto[],
+  ): Promise<
+    Array<{ allowed: boolean; source: string; evaluated_at: string }>
+  > {
+    const results = await Promise.all(dtos.map((dto) => this.check(dto)));
     return results;
   }
 }

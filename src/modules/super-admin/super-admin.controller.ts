@@ -1,4 +1,14 @@
-import { Controller, Post, Get, Param, Body, UseGuards, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Param,
+  Body,
+  UseGuards,
+  Query,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { SuperAdminService } from './super-admin.service';
 import { ImpersonateDto } from './dto/impersonate.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -23,7 +33,10 @@ export class SuperAdminController {
   }
 
   @Get('tenants/:id/users')
-  async getTenantUsers(@Param('id') tenantId: string, @CurrentUser() user: any) {
+  async getTenantUsers(
+    @Param('id') tenantId: string,
+    @CurrentUser() user: any,
+  ) {
     // Note: Requires SuperAdmin Guard
     return this.superAdminService.getTenantUsers(tenantId);
   }

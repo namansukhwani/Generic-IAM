@@ -13,7 +13,9 @@ import { ConfigService } from '@nestjs/config';
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.name'),
-        ssl: configService.get<boolean>('database.ssl') ? { rejectUnauthorized: false } : false,
+        ssl: configService.get<boolean>('database.ssl')
+          ? { rejectUnauthorized: false }
+          : false,
         autoLoadEntities: true,
         synchronize: false,
         extra: {

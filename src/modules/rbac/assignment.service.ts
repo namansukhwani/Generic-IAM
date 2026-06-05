@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual, IsNull } from 'typeorm';
 import { UserRoleEntity } from './entities/user-role.entity';
@@ -22,8 +26,15 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
     super(userRoleRepository);
   }
 
-  async assignToUser(userId: string, tenantId: string, dto: AssignRoleDto, actorId: string): Promise<UserRoleEntity> {
-    const user = await this.userRepository.findOne({ where: { id: userId, tenant_id: tenantId } });
+  async assignToUser(
+    userId: string,
+    tenantId: string,
+    dto: AssignRoleDto,
+    actorId: string,
+  ): Promise<UserRoleEntity> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId, tenant_id: tenantId },
+    });
     if (!user) throw new NotFoundException('User not found in tenant');
 
     // Validates role exists and belongs to tenant (or system)
@@ -67,7 +78,12 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
     return assignment;
   }
 
-  async revokeFromUser(userId: string, roleId: string, tenantId: string, actorId: string): Promise<void> {
+  async revokeFromUser(
+    userId: string,
+    roleId: string,
+    tenantId: string,
+    actorId: string,
+  ): Promise<void> {
     const assignment = await this.userRoleRepository.findOne({
       where: { user_id: userId, role_id: roleId, tenant_id: tenantId },
     });
@@ -92,11 +108,15 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
     }
   }
 
-  async getUserRoles(userId: string, tenantId: string): Promise<UserRoleEntity[]> {
+  async getUserRoles(
+    userId: string,
+    tenantId: string,
+  ): Promise<UserRoleEntity[]> {
     const now = new Date();
-    
+
     // We want all roles that have NO expiry, or expiry > now
-    const qb = this.userRoleRepository.createQueryBuilder('ur')
+    const qb = this.userRoleRepository
+      .createQueryBuilder('ur')
       .leftJoinAndSelect('ur.role', 'role')
       .where('ur.user_id = :userId', { userId })
       .andWhere('ur.tenant_id = :tenantId', { tenantId })

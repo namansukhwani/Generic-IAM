@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ACL_KEY, AclMetadata } from '../decorators/require-acl.decorator';
 import { RequestContext } from '../interfaces/request-context.interface';
@@ -8,7 +13,7 @@ import { IdentityType } from '../constants/identity-types.constant';
 export class AclGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const aclMeta = this.reflector.getAllAndOverride<AclMetadata>(ACL_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -25,7 +30,7 @@ export class AclGuard implements CanActivate {
       throw new ForbiddenException('Authentication required');
     }
 
-    if (user.identity_type === IdentityType.SUPER_ADMIN) {
+    if ((user.identity_type as IdentityType) === IdentityType.SUPER_ADMIN) {
       return true;
     }
 

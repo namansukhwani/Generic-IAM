@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IDENTITY_TYPES_KEY } from '../decorators/identity-types.decorator';
 import { IdentityType } from '../constants/identity-types.constant';
@@ -25,7 +30,9 @@ export class IdentityTypeGuard implements CanActivate {
     }
 
     if (!requiredTypes.includes(user.identity_type as IdentityType)) {
-      throw new ForbiddenException(`Identity type ${user.identity_type} not allowed`);
+      throw new ForbiddenException(
+        `Identity type ${user.identity_type} not allowed`,
+      );
     }
 
     return true;
