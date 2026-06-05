@@ -34,8 +34,9 @@ export class AclGuard implements CanActivate {
       return true;
     }
 
-    const resourceId = request.params[aclMeta.paramKey || 'id'];
+    const resourceId = request.params[aclMeta.paramKey || 'id'] as string;
     if (!resourceId) {
+
       throw new ForbiddenException('Resource ID not found in request');
     }
 
