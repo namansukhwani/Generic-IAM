@@ -9,11 +9,13 @@ import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { RoleEntity } from './entities/role.entity';
+import { UserRoleEntity } from './entities/user-role.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { EventProducer } from '../../event/event.producer';
 import { AuditEventType } from '../../common/constants/audit-events.constant';
 import { BaseService } from '../../common/base/base.service';
 import type { RequestContext } from '../../common/interfaces/request-context.interface';
+import { ConflictException } from '@nestjs/common';
 
 import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
 
@@ -22,6 +24,8 @@ export class RoleService extends BaseService<RoleEntity> {
   constructor(
     @InjectRepository(RoleEntity)
     protected readonly defaultRepository: Repository<RoleEntity>,
+    @InjectRepository(UserRoleEntity)
+    private readonly userRoleRepository: Repository<UserRoleEntity>,
     private readonly eventProducer: EventProducer,
     @Inject(REQUEST) protected readonly request: RequestContext,
   ) {
@@ -115,7 +119,13 @@ export class RoleService extends BaseService<RoleEntity> {
       throw new BadRequestException('Cannot delete system roles');
     }
 
-    // TODO: Phase 5D.4 - Check if users are assigned to this role before deleting
+    const assignedUsersCount = await this.userRoleRepository.count({
+      where: { role_id: role.id },
+    });
+
+    if (assignedUsersCount > 0) {
+      throw new ConflictException('Cannot delete role as it is assigned to users');
+    }
 
     await this.repository.remove(role);
 

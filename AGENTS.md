@@ -22,7 +22,7 @@ Co-Authored-By: Antigravity <antigravity@deepmind.google.com>
 - **Transactions**: `TenantTransactionInterceptor` handles DB transaction lifecycle and RLS isolation. Services use `@Inject(REQUEST) protected readonly request: RequestContext` and pass `request` to `super(defaultRepository, request)`.
 - **Database**: PostgreSQL with Row-Level Security (RLS). Tenant creation bypasses RLS.
 - **Events**: Emit audit/changed events to Kafka (e.g. `KAFKA_TOPICS.IAM_AUDIT`) using `eventProducer`.
-
+- **Guards**: IAM modules use `IamPermissionGuard` and `IamAclGuard` (which call `AuthorizationService`). The SDK uses `PermissionGuard` and `AclGuard` (which call `IamAuthzService`). All guards support checking effective permissions and resource ACLs dynamically.
 ## Module Status
 - `tenant`: CRUD implemented.
 - `user`: CRUD, user hierarchy query. Auto-assigns `MEMBER` role on creation if no `role_id` is provided.

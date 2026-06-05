@@ -4,9 +4,14 @@ import { ACL_KEY, AclMetadata } from '../decorators/require-acl.decorator';
 import { RequestContext } from '../interfaces/request-context.interface';
 import { IdentityType } from '../constants/identity-types.constant';
 
+import { IamAuthzService } from '../iam-authz.service';
+
 @Injectable()
 export class AclGuard implements CanActivate {
-  constructor(protected reflector: Reflector) {}
+  constructor(
+    protected reflector: Reflector,
+    protected authzService: IamAuthzService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const aclMeta = this.reflector.getAllAndOverride<AclMetadata>(ACL_KEY, [
@@ -34,9 +39,14 @@ export class AclGuard implements CanActivate {
       throw new ForbiddenException('Resource ID not found in request');
     }
 
-    // TODO: In Phase 4/5, inject AclService to check DB/Redis for resource-level permission
-    // const hasAcl = await this.aclService.checkAcl(user.tenant_id, user.sub, aclMeta.resource, resourceId, aclMeta.action);
-    const hasAcl = false; // Mock
+    // In Phase 4/5, inject AclService to check DB/Redis for resource-level permission
+    const hasAcl = await this.authzService.isAllowed(
+      user.sub,
+      user.tenant_id as string,
+      aclMeta.action,
+      aclMeta.resource,
+      resourceId,
+    );
 
     if (!hasAcl) {
       throw new ForbiddenException('Insufficient resource ACL');

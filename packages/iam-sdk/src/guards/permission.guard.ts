@@ -4,10 +4,14 @@ import { PERMISSIONS_KEY } from '../decorators/require-permissions.decorator';
 import { RequestContext } from '../interfaces/request-context.interface';
 import { IdentityType } from '../constants/identity-types.constant';
 import { hasPermission } from '../utils/permission-matcher.util';
+import { IamAuthzService } from '../iam-authz.service';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
-  constructor(protected reflector: Reflector) {}
+  constructor(
+    protected reflector: Reflector,
+    protected authzService: IamAuthzService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
@@ -30,16 +34,17 @@ export class PermissionGuard implements CanActivate {
       return true;
     }
 
-    // TODO: In Phase 4/5, inject CacheService/PermissionService to get effective permissions
-    // const effectivePermissions = await this.permissionService.getEffectivePermissions(user.tenant_id, user.sub);
-    const effectivePermissions = new Set<string>(); // Mock for now
-
-    const hasAllRequired = requiredPermissions.every((perm) =>
-      hasPermission(effectivePermissions, perm),
-    );
-
-    if (!hasAllRequired) {
-      throw new ForbiddenException('Insufficient permissions');
+    // In Phase 4/5, inject CacheService/PermissionService to get effective permissions
+    // We iterate over required permissions and check each one
+    for (const perm of requiredPermissions) {
+      const isAllowed = await this.authzService.isAllowed(
+        user.sub,
+        user.tenant_id as string,
+        perm,
+      );
+      if (!isAllowed) {
+        throw new ForbiddenException('Insufficient permissions');
+      }
     }
 
     return true;

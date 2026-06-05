@@ -351,11 +351,11 @@ expense
 
 ### Action Items
 
-- [ ] **10.1** Implement TODO #3 — inject `TenantService` into `TenantValidationPipe`, validate tenant exists
-- [ ] **10.2** Implement TODO #4 — add self-or-permission check in `UserController.findOne()`
-- [ ] **10.3** Implement TODO #5 — add user assignment check in `RoleService.deleteCustomRole()`
-- [ ] **10.4** Implement TODO #6 + #7 — SDK guards use `IamAuthzService` (depends on WS1)
-- [ ] **10.5** Implement TODO #1 + #2 — IAM guards use local `AuthorizationService` (depends on WS3)
+- [x] **10.1** Implement TODO #3 — inject `TenantService` into `TenantValidationPipe`, validate tenant exists
+- [x] **10.2** Implement TODO #4 — add self-or-permission check in `UserController.findOne()`
+- [x] **10.3** Implement TODO #5 — add user assignment check in `RoleService.deleteCustomRole()`
+- [x] **10.4** Implement TODO #6 + #7 — SDK guards use `IamAuthzService` (depends on WS1)
+- [x] **10.5** Implement TODO #1 + #2 — IAM guards use local `AuthorizationService` (depends on WS3)
 
 ---
 

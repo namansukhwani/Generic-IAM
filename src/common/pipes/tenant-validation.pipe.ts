@@ -4,21 +4,37 @@ import {
   ArgumentMetadata,
   BadRequestException,
 } from '@nestjs/common';
+import { TenantService } from '../../modules/tenant/tenant.service';
+import { CacheService } from '../../cache/cache.service';
 
 @Injectable()
 export class TenantValidationPipe implements PipeTransform {
-  public async transform(value: string, _metadata: ArgumentMetadata) {
-    if (!value) {
+  constructor(
+    private readonly tenantService: TenantService,
+    private readonly cacheService: CacheService,
+  ) {}
+
+  public async transform(value: Record<string, unknown> | any, _metadata: ArgumentMetadata) {
+    if (!value || typeof value !== 'object') {
       return value;
     }
 
-    // Note: Assuming `value` contains tenant_id.
-    // In Phase 4, we will use TenantService / Cache to validate the tenant_id.
-    const tenantId = value.tenant_id;
+    const tenantId = value.tenant_id as string;
     if (tenantId) {
-      // TODO: Validate tenantId exists in DB/Cache
-      // const isValid = await this.tenantService.isValid(tenantId);
-      // if (!isValid) throw new BadRequestException('Invalid tenant');
+      const cacheKey = `tenant_valid:${tenantId}`;
+      const isCached = await this.cacheService.get(cacheKey);
+
+      if (!isCached) {
+        try {
+          const tenant = await this.tenantService.findOne({ where: { id: tenantId } });
+          if (!tenant || !tenant.is_active) {
+            throw new BadRequestException('Invalid or inactive tenant');
+          }
+          await this.cacheService.set(cacheKey, 'true', 600); // 10 min TTL
+        } catch (error) {
+          throw new BadRequestException('Invalid or inactive tenant');
+        }
+      }
     }
 
     return value;

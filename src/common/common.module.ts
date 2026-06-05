@@ -11,9 +11,11 @@ import { TenantValidationPipe } from './pipes/tenant-validation.pipe';
 
 import { AuthorizationModule } from '../modules/authorization/authorization.module';
 
+import { TenantModule } from '../modules/tenant/tenant.module';
+
 @Global()
 @Module({
-  imports: [AuthorizationModule],
+  imports: [AuthorizationModule, TenantModule],
   providers: [
     {
       provide: APP_GUARD,

@@ -21,11 +21,17 @@ import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.co
 import { CurrentUser  } from '@iam/nestjs-sdk';
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 
+import { AuthorizationService } from '../authorization/authorization.service';
+import { ForbiddenException } from '@nestjs/common';
+
 @ApiTags('Users')
 @ApiBearerAuth()
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly authzService: AuthorizationService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create user in current tenant' })
@@ -73,9 +79,14 @@ export class UserController {
   ) {
     // If self, allow without permission
     if (user.sub !== id) {
-      // TODO: need to check SYSTEM_PERMISSIONS.USER.READ manually if not self?
-      // For now, let's just use service which fetches the user. Then we can check tenant.
-      // A better approach would be custom logic, but let's rely on tenant isolation at least.
+      const authz = await this.authzService.check({
+        tenant_id: user.tenant_id as string,
+        user_id: user.sub,
+        permission: SYSTEM_PERMISSIONS.USER.READ,
+      });
+      if (!authz.allowed) {
+        throw new ForbiddenException('Insufficient permissions');
+      }
     }
     const target = await this.userService.findOne({ where: { id } });
     if (target.tenant_id !== user.tenant_id) {
