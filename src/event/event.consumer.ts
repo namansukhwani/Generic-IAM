@@ -14,7 +14,7 @@ export class EventConsumer {
 
   @EventPattern(KAFKA_TOPICS.IAM_PERMISSION_CHANGED)
   async handlePermissionChanged(
-    @Payload() message: any,
+    @Payload() message: PermissionChangedEvent,
     @Ctx() context: KafkaContext,
   ) {
     // Expected payload: { tenant_id: string, user_id: string }

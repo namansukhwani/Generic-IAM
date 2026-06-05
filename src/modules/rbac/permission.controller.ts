@@ -1,3 +1,4 @@
+import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import {
   Controller,
   Get,
@@ -24,13 +25,13 @@ export class PermissionController {
   async assignPermissionToRole(
     @Param('roleId') roleId: string,
     @Param('permissionId') permissionId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.permissionService.assignToRole(
       roleId,
-      user.tenantId,
+      (user.tenant_id as string),
       permissionId,
-      user.userId,
+      user.sub,
     );
   }
 
@@ -38,13 +39,13 @@ export class PermissionController {
   async removePermissionFromRole(
     @Param('roleId') roleId: string,
     @Param('permissionId') permissionId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     await this.permissionService.removeFromRole(
       roleId,
-      user.tenantId,
+      (user.tenant_id as string),
       permissionId,
-      user.userId,
+      user.sub,
     );
     return { success: true };
   }

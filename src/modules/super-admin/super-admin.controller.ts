@@ -1,3 +1,5 @@
+export interface AuditLogFilterDto { [key: string]: string; }
+import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import {
   Controller,
   Post,
@@ -21,13 +23,13 @@ export class SuperAdminController {
 
   @Post('impersonate')
   @HttpCode(HttpStatus.OK)
-  async impersonate(@Body() dto: ImpersonateDto, @CurrentUser() user: any) {
+  async impersonate(@Body() dto: ImpersonateDto, @CurrentUser() user: JwtPayload) {
     // Note: Requires SuperAdmin Guard
-    return this.superAdminService.impersonate(dto, user.userId);
+    return this.superAdminService.impersonate(dto, user.sub);
   }
 
   @Get('tenants')
-  async getTenants(@CurrentUser() user: any) {
+  async getTenants(@CurrentUser() user: JwtPayload) {
     // Note: Requires SuperAdmin Guard
     return this.superAdminService.getTenants();
   }
@@ -35,14 +37,14 @@ export class SuperAdminController {
   @Get('tenants/:id/users')
   async getTenantUsers(
     @Param('id') tenantId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     // Note: Requires SuperAdmin Guard
     return this.superAdminService.getTenantUsers(tenantId);
   }
 
   @Get('audit-logs')
-  async getAuditLogs(@Query() filters: any, @CurrentUser() user: any) {
+  async getAuditLogs(@Query() filters: AuditLogFilterDto, @CurrentUser() user: JwtPayload) {
     // Note: Requires SuperAdmin Guard
     return this.superAdminService.getAuditLogs(filters);
   }

@@ -33,11 +33,11 @@ export class AuditService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  pushEvent(eventPayload: any) {
+  pushEvent(eventPayload: AuditEventPayload) {
     this.eventSubject.next(eventPayload);
   }
 
-  private async flushBatch(batch: any[]) {
+  private async flushBatch(batch: AuditEventPayload[]) {
     try {
       const entities = batch.map((event) => {
         return this.auditRepository.create({

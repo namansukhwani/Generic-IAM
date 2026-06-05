@@ -1,3 +1,4 @@
+import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import {
   Controller,
   Post,
@@ -32,13 +33,13 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(AuthGuard('jwt'))
-  async logout(@CurrentUser() user: any) {
-    await this.authService.logout(user.userId, user.tenantId);
+  async logout(@CurrentUser() user: JwtPayload) {
+    await this.authService.logout(user.sub, (user.tenant_id as string));
   }
 
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
-  async getMe(@CurrentUser() user: any) {
-    return this.authService.getMe(user.userId);
+  async getMe(@CurrentUser() user: JwtPayload) {
+    return this.authService.getMe(user.sub);
   }
 }

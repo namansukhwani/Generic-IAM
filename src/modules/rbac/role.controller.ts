@@ -1,3 +1,4 @@
+import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import {
   Controller,
   Post,
@@ -20,39 +21,39 @@ export class RoleController {
 
   @Post()
   // @RequireTenantAdmin() -> To be implemented fully in Phase 6 with RBAC guard, but assuming logic allows it or manually checked
-  async createRole(@Body() dto: CreateRoleDto, @CurrentUser() user: any) {
+  async createRole(@Body() dto: CreateRoleDto, @CurrentUser() user: JwtPayload) {
     // Requires Tenant_Admin logic will be handled by a global RBAC guard later,
     // but we have user.identityType or similar if we want.
-    return this.roleService.createCustomRole(user.tenantId, dto, user.userId);
+    return this.roleService.createCustomRole((user.tenant_id as string), dto, user.sub);
   }
 
   @Get()
-  async getRoles(@CurrentUser() user: any) {
-    return this.roleService.findAllForTenant(user.tenantId);
+  async getRoles(@CurrentUser() user: JwtPayload) {
+    return this.roleService.findAllForTenant((user.tenant_id as string));
   }
 
   @Get(':id')
-  async getRole(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.roleService.findOneForTenant(id, user.tenantId);
+  async getRole(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.roleService.findOneForTenant(id, (user.tenant_id as string));
   }
 
   @Patch(':id')
   async updateRole(
     @Param('id') id: string,
     @Body() dto: Partial<CreateRoleDto>,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.roleService.updateCustomRole(
       id,
-      user.tenantId,
+      (user.tenant_id as string),
       dto,
-      user.userId,
+      user.sub,
     );
   }
 
   @Delete(':id')
-  async deleteRole(@Param('id') id: string, @CurrentUser() user: any) {
-    await this.roleService.deleteCustomRole(id, user.tenantId, user.userId);
+  async deleteRole(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    await this.roleService.deleteCustomRole(id, (user.tenant_id as string), user.sub);
     return { success: true };
   }
 }

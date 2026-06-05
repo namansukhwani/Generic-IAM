@@ -54,10 +54,10 @@ export class UserController {
   ) {
     const result = await this.userService.findPaginated(page, limit, {
       where: { tenant_id: user.tenant_id || '' },
-      order: { created_at: 'DESC' } as any,
+      order: { created_at: 'DESC' },
     });
     return {
-      data: result.data.map((u: any) => new UserResponseDto(u)),
+      data: result.data.map((u) => new UserResponseDto(u)),
       total: result.total,
       page,
       limit,

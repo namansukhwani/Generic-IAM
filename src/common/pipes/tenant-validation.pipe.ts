@@ -7,7 +7,7 @@ import {
 
 @Injectable()
 export class TenantValidationPipe implements PipeTransform {
-  public async transform(value: any, _metadata: ArgumentMetadata) {
+  public async transform(value: string, _metadata: ArgumentMetadata) {
     if (!value) {
       return value;
     }

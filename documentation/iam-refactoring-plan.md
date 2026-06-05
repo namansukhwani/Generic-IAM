@@ -318,18 +318,18 @@ expense
 
 ### Action Items
 
-- [ ] **9.1** Replace `@CurrentUser() user: any` in all RBAC controllers ([role.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/role.controller.ts), [assignment.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/assignment.controller.ts), [permission.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/permission.controller.ts), [acl.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/acl/acl.controller.ts), [super-admin.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/super-admin/super-admin.controller.ts), [auth.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/auth/auth.controller.ts)) → `user: JwtPayload`
-- [ ] **9.2** Fix property access mismatches after 9.1 — controllers use `user.tenantId` / `user.userId` but `JwtPayload` has `user.tenant_id` / `user.sub`. Standardize to JWT payload shape
-- [ ] **9.3** Type [event.producer.ts](file:///Users/naman.sukhwani/IAM/src/event/event.producer.ts) `BaseEvent.payload` — replace `any` with `Record<string, unknown>`
-- [ ] **9.4** Type [audit.service.ts](file:///Users/naman.sukhwani/IAM/src/modules/audit/audit.service.ts) `pushEvent()` and `flushBatch()` — create `AuditEventPayload` interface
-- [ ] **9.5** Type [event.consumer.ts](file:///Users/naman.sukhwani/IAM/src/event/event.consumer.ts) `@Payload() message` — create `PermissionChangedEvent` interface
-- [ ] **9.6** Type [audit.consumer.ts](file:///Users/naman.sukhwani/IAM/src/modules/audit/audit.consumer.ts) `@Payload() message` — use `AuditEventPayload`
-- [ ] **9.7** Type [override.service.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/override.service.ts) `rolePermissions: any[]` → `PermissionEntity[]`, and `dto: any` → `CreateOverrideDto`
-- [ ] **9.8** Type [super-admin.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/super-admin/super-admin.controller.ts) `@Query() filters: any` → create `AuditLogFilterDto`
-- [ ] **9.9** Type [jwt.strategy.ts](file:///Users/naman.sukhwani/IAM/src/modules/auth/strategies/jwt.strategy.ts) `validate(payload: any)` → `validate(payload: JwtPayload)`
-- [ ] **9.10** Type [tenant-validation.pipe.ts](file:///Users/naman.sukhwani/IAM/src/common/pipes/tenant-validation.pipe.ts) `transform(value: any)` → proper generic
-- [ ] **9.11** Remove `as any` casts in `order: { created_at: 'DESC' } as any` ([user.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/user/user.controller.ts) L57, [tenant.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/tenant/tenant.controller.ts) L46) — fix `BaseService.findPaginated()` signature to accept proper `FindManyOptions`
-- [ ] **9.12** Run `npx tsc --noEmit --strict` to catch remaining untyped spots
+- [x] **9.1** Replace `@CurrentUser() user: any` in all RBAC controllers ([role.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/role.controller.ts), [assignment.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/assignment.controller.ts), [permission.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/permission.controller.ts), [acl.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/acl/acl.controller.ts), [super-admin.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/super-admin/super-admin.controller.ts), [auth.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/auth/auth.controller.ts)) → `user: JwtPayload`
+- [x] **9.2** Fix property access mismatches after 9.1 — controllers use `user.tenantId` / `user.userId` but `JwtPayload` has `user.tenant_id` / `user.sub`. Standardize to JWT payload shape
+- [x] **9.3** Type [event.producer.ts](file:///Users/naman.sukhwani/IAM/src/event/event.producer.ts) `BaseEvent.payload` — replace `any` with `Record<string, unknown>`
+- [x] **9.4** Type [audit.service.ts](file:///Users/naman.sukhwani/IAM/src/modules/audit/audit.service.ts) `pushEvent()` and `flushBatch()` — create `AuditEventPayload` interface
+- [x] **9.5** Type [event.consumer.ts](file:///Users/naman.sukhwani/IAM/src/event/event.consumer.ts) `@Payload() message` — create `PermissionChangedEvent` interface
+- [x] **9.6** Type [audit.consumer.ts](file:///Users/naman.sukhwani/IAM/src/modules/audit/audit.consumer.ts) `@Payload() message` — use `AuditEventPayload`
+- [x] **9.7** Type [override.service.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/override.service.ts) `rolePermissions: any[]` → `PermissionEntity[]`, and `dto: any` → `CreateOverrideDto`
+- [x] **9.8** Type [super-admin.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/super-admin/super-admin.controller.ts) `@Query() filters: any` → create `AuditLogFilterDto`
+- [x] **9.9** Type [jwt.strategy.ts](file:///Users/naman.sukhwani/IAM/src/modules/auth/strategies/jwt.strategy.ts) `validate(payload: any)` → `validate(payload: JwtPayload)`
+- [x] **9.10** Type [tenant-validation.pipe.ts](file:///Users/naman.sukhwani/IAM/src/common/pipes/tenant-validation.pipe.ts) `transform(value: any)` → proper generic
+- [x] **9.11** Remove `as any` casts in `order: { created_at: 'DESC' } as any` ([user.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/user/user.controller.ts) L57, [tenant.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/tenant/tenant.controller.ts) L46) — fix `BaseService.findPaginated()` signature to accept proper `FindManyOptions`
+- [x] **9.12** Run `npx tsc --noEmit --strict` to catch remaining untyped spots
 
 ---
 

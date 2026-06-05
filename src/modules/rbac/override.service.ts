@@ -131,7 +131,7 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
     // 2. Fetch permissions for those roles
     const roleIds = activeRoles.map((ur) => ur.role_id);
 
-    let rolePermissions: any[] = [];
+    let rolePermissions: PermissionEntity[] = [];
     if (roleIds.length > 0) {
       const qb = this.permissionRepository
         .createQueryBuilder('p')
@@ -170,7 +170,7 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
     tenantId: string,
     actorId: string,
     action: string,
-    dto: any,
+    dto: CreateOverrideDto,
   ) {
     this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.PERMISSION_OVERRIDE_ADDED,

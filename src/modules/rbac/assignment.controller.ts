@@ -1,3 +1,4 @@
+import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import {
   Controller,
   Get,
@@ -28,13 +29,13 @@ export class AssignmentController {
   async assignRole(
     @Param('userId') targetUserId: string,
     @Body() dto: AssignRoleDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.assignmentService.assignToUser(
       targetUserId,
-      user.tenantId,
+      (user.tenant_id as string),
       dto,
-      user.userId,
+      user.sub,
     );
   }
 
@@ -42,13 +43,13 @@ export class AssignmentController {
   async revokeRole(
     @Param('userId') targetUserId: string,
     @Param('roleId') roleId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     await this.assignmentService.revokeFromUser(
       targetUserId,
       roleId,
-      user.tenantId,
-      user.userId,
+      (user.tenant_id as string),
+      user.sub,
     );
     return { success: true };
   }
@@ -56,9 +57,9 @@ export class AssignmentController {
   @Get('roles')
   async getUserRoles(
     @Param('userId') targetUserId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.assignmentService.getUserRoles(targetUserId, user.tenantId);
+    return this.assignmentService.getUserRoles(targetUserId, (user.tenant_id as string));
   }
 
   // Overrides
@@ -67,24 +68,24 @@ export class AssignmentController {
   async addOverride(
     @Param('userId') targetUserId: string,
     @Body() dto: CreateOverrideDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.overrideService.addOverride(
       targetUserId,
-      user.tenantId,
+      (user.tenant_id as string),
       dto,
-      user.userId,
+      user.sub,
     );
   }
 
   @Get('permission-overrides')
   async getOverrides(
     @Param('userId') targetUserId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.overrideService.getOverridesForUser(
       targetUserId,
-      user.tenantId,
+      (user.tenant_id as string),
     );
   }
 
@@ -92,13 +93,13 @@ export class AssignmentController {
   async removeOverride(
     @Param('userId') targetUserId: string,
     @Param('overrideId') overrideId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     await this.overrideService.removeOverride(
       overrideId,
       targetUserId,
-      user.tenantId,
-      user.userId,
+      (user.tenant_id as string),
+      user.sub,
     );
     return { success: true };
   }
@@ -106,11 +107,11 @@ export class AssignmentController {
   @Get('effective-permissions')
   async getEffectivePermissions(
     @Param('userId') targetUserId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.overrideService.getEffectivePermissions(
       targetUserId,
-      user.tenantId,
+      (user.tenant_id as string),
     );
   }
 }

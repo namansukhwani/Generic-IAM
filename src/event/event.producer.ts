@@ -14,7 +14,7 @@ export interface BaseEvent {
   resource_type?: string;
   resource_id?: string;
   user_id?: string;
-  payload?: any;
+  payload?: Record<string, unknown>;
 }
 
 @Injectable()

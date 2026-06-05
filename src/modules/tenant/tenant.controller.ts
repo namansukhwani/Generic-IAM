@@ -43,7 +43,7 @@ export class TenantController {
     return this.tenantService.findAll({
       skip: (page - 1) * limit,
       take: limit,
-      order: { created_at: 'DESC' } as any,
+      order: { created_at: 'DESC' },
     });
   }
 
