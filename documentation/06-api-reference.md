@@ -132,7 +132,7 @@
 
 ### `GET /auth/me`
 
-**Response 200:**
+**Response 200 (regular user):**
 ```json
 {
   "success": true,
@@ -143,8 +143,12 @@
     "last_name": "Doe",
     "tenant_id": "tenant-uuid",
     "is_active": true,
+    "manager_id": null,
+    "created_at": "2026-06-04T16:00:00.000Z",
+    "updated_at": "2026-06-04T16:00:00.000Z",
     "identity_type": "USER"
-  }
+  },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
 }
 ```
 
@@ -190,12 +194,21 @@
     "slug": "acme-corp",
     "is_active": true,
     "settings": { "max_users": 1000, "features": ["expense", "payroll"] },
-    "admin_user": {
-      "id": "user-uuid",
-      "email": "admin@acme.com"
-    },
-    "created_at": "2026-06-04T16:00:00Z"
-  }
+    "created_at": "2026-06-04T16:00:00.000Z",
+    "updated_at": "2026-06-04T16:00:00.000Z"
+  },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
+}
+```
+
+### `DELETE /tenants/:id`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "data": { "success": true },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
 }
 ```
 
@@ -209,7 +222,7 @@
 }
 ```
 
-**Response 200:** Updated tenant object.
+**Response 200:** Updated tenant object (same shape as POST /tenants response).
 
 ---
 
@@ -221,7 +234,7 @@
 | `GET` | `/users` | List users in current tenant | Tenant_Admin |
 | `GET` | `/users/:id` | Get user details | Tenant_Admin / Self |
 | `PATCH` | `/users/:id` | Update user | Tenant_Admin / Self (limited) |
-| `PATCH` | `/users/:id/status` | Update user status (activate/deactivate) | Tenant_Admin |
+| `PATCH` | `/users/:id/status` | Update user status (activate/deactivate) — returns 200 `{ success: true }` | Tenant_Admin |
 | `GET` | `/users/:id/hierarchy` | Get user's reporting chain | Tenant_Admin |
 
 ### `POST /users`
@@ -243,33 +256,46 @@
   "success": true,
   "data": {
     "id": "new-user-uuid",
+    "tenant_id": "tenant-uuid",
     "email": "jane@acme.com",
     "first_name": "Jane",
     "last_name": "Doe",
-    "manager_id": "manager-user-uuid",
     "is_active": true,
-    "tenant_id": "tenant-uuid",
-    "created_at": "2026-06-04T16:00:00Z"
-  }
+    "manager_id": "manager-user-uuid",
+    "created_at": "2026-06-04T16:00:00.000Z",
+    "updated_at": "2026-06-04T16:00:00.000Z"
+  },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
 }
 ```
 
 ### `GET /users`
 
-**Query params:** `?page=1&limit=20&search=jane`
+**Query params:** `?page=1&limit=10`
 
 **Response 200:**
 ```json
 {
   "success": true,
-  "data": [
-    { "id": "user-1", "email": "jane@acme.com", "first_name": "Jane", ... }
-  ],
-  "meta": {
+  "data": {
+    "data": [
+      {
+        "id": "user-1",
+        "tenant_id": "tenant-uuid",
+        "email": "jane@acme.com",
+        "first_name": "Jane",
+        "last_name": "Doe",
+        "is_active": true,
+        "manager_id": null,
+        "created_at": "2026-06-04T16:00:00.000Z",
+        "updated_at": "2026-06-04T16:00:00.000Z"
+      }
+    ],
     "total": 42,
     "page": 1,
-    "limit": 20
-  }
+    "limit": 10
+  },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
 }
 ```
 
@@ -283,7 +309,7 @@
 | `GET` | `/roles` | List roles (system + custom) | Tenant_Admin |
 | `GET` | `/roles/:id` | Get role with permissions | Tenant_Admin |
 | `PATCH` | `/roles/:id` | Update custom role | Tenant_Admin |
-| `DELETE` | `/roles/:id` | Delete custom role | Tenant_Admin |
+| `DELETE` | `/roles/:id` | Delete custom role — returns 200 `{ success: true }` | Tenant_Admin |
 | `GET` | `/permissions` | List all available permissions | Tenant_Admin |
 | `PATCH` | `/roles/:id/permissions` | Batch add/remove permissions from role | Tenant_Admin |
 | `PATCH` | `/users/:id/roles` | Batch assign/remove roles for user | Tenant_Admin |
@@ -309,12 +335,14 @@
   "success": true,
   "data": {
     "id": "role-uuid",
+    "tenant_id": "tenant-uuid",
     "name": "Custom_Finance_Role",
     "description": "Custom role for finance team",
     "is_system": false,
-    "tenant_id": "tenant-uuid",
-    "created_at": "2026-06-04T16:00:00Z"
-  }
+    "created_at": "2026-06-04T16:00:00.000Z",
+    "updated_at": "2026-06-04T16:00:00.000Z"
+  },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
 }
 ```
 
@@ -345,11 +373,14 @@
     {
       "id": "perm-uuid-1",
       "code": "expense:read",
+      "service": "expense",
+      "parent_id": null,
       "description": "Read expense records",
-      "is_system": true,
-      "created_at": "2026-06-04T16:00:00Z"
+      "created_at": "2026-06-04T16:00:00.000Z",
+      "updated_at": "2026-06-04T16:00:00.000Z"
     }
-  ]
+  ],
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
 }
 ```
 
@@ -393,24 +424,114 @@
 }
 ```
 
-### `GET /users/:id/effective-permissions`
+**Response 201:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "override-uuid",
+    "tenant_id": "tenant-uuid",
+    "user_id": "user-uuid",
+    "permission_id": "perm-expense-delete-uuid",
+    "override_type": "DENY",
+    "reason": "Restricted per HR policy — no expense deletion",
+    "created_at": "2026-06-04T16:00:00.000Z",
+    "updated_at": "2026-06-04T16:00:00.000Z"
+  },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
+}
+```
+
+### `GET /users/:id/permission-overrides`
+
+**Response 200:** Array of overrides with the nested `permission` relation:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "override-uuid",
+      "tenant_id": "tenant-uuid",
+      "user_id": "user-uuid",
+      "permission_id": "perm-expense-delete-uuid",
+      "permission": {
+        "id": "perm-expense-delete-uuid",
+        "code": "expense:delete",
+        "service": "expense",
+        "parent_id": null,
+        "description": "Delete expense records",
+        "created_at": "2026-06-04T16:00:00.000Z",
+        "updated_at": "2026-06-04T16:00:00.000Z"
+      },
+      "override_type": "DENY",
+      "reason": "Restricted per HR policy — no expense deletion",
+      "created_at": "2026-06-04T16:00:00.000Z",
+      "updated_at": "2026-06-04T16:00:00.000Z"
+    }
+  ],
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
+}
+```
+
+### `DELETE /users/:id/permission-overrides/:overrideId`
 
 **Response 200:**
 ```json
 {
   "success": true,
-  "data": {
-    "user_id": "user-uuid",
-    "roles": [
-      { "id": "role-1", "name": "EXPENSE_MANAGER", "is_system": true }
-    ],
-    "role_permissions": ["expense:read", "expense:write", "expense:delete", "expense:approve"],
-    "overrides": [
-      { "permission": "expense:delete", "type": "DENY", "reason": "HR policy" },
-      { "permission": "report:read", "type": "GRANT", "reason": "Q2 audit" }
-    ],
-    "effective_permissions": ["expense:read", "expense:write", "expense:approve", "report:read"]
-  }
+  "data": { "success": true },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
+}
+```
+
+### `GET /users/:id/roles`
+
+**Response 200:** Array of active (non-expired) `UserRoleEntity` with the nested `role` relation:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "user-role-uuid",
+      "tenant_id": "tenant-uuid",
+      "user_id": "user-uuid",
+      "role_id": "role-uuid",
+      "role": {
+        "id": "role-uuid",
+        "tenant_id": null,
+        "name": "EXPENSE_MANAGER",
+        "description": "Expense manager role",
+        "is_system": true,
+        "created_at": "2026-06-04T16:00:00.000Z",
+        "updated_at": "2026-06-04T16:00:00.000Z"
+      },
+      "expires_at": null,
+      "created_at": "2026-06-04T16:00:00.000Z",
+      "updated_at": "2026-06-04T16:00:00.000Z"
+    }
+  ],
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
+}
+```
+
+### `GET /users/:id/effective-permissions`
+
+**Response 200:** Flat array of effective `PermissionEntity` objects (role permissions ∪ GRANT overrides − DENY overrides):
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "perm-uuid",
+      "code": "expense:read",
+      "service": "expense",
+      "parent_id": null,
+      "description": "Read expense records",
+      "created_at": "2026-06-04T16:00:00.000Z",
+      "updated_at": "2026-06-04T16:00:00.000Z"
+    }
+  ],
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
 }
 ```
 
@@ -422,7 +543,7 @@
 |--------|----------|-------------|---------------|
 | `POST` | `/acl` | Create resource ACL | Tenant_Admin |
 | `GET` | `/acl` | List ACLs (filterable) | Tenant_Admin |
-| `DELETE` | `/acl/:id` | Delete ACL entry | Tenant_Admin |
+| `DELETE` | `/acl/:id` | Delete ACL entry — returns 200 `{ success: true }` | Tenant_Admin |
 | `POST` | `/acl/check` | Check resource-level access | Internal / Service |
 
 ### `POST /acl`
@@ -443,38 +564,39 @@
   "success": true,
   "data": {
     "id": "acl-uuid",
+    "tenant_id": "tenant-uuid",
     "user_id": "user-uuid",
     "resource_type": "expense",
     "resource_id": "expense-uuid",
     "permission": "approve",
-    "granted_by": "admin-uuid",
-    "created_at": "2026-06-04T16:00:00Z"
-  }
+    "created_at": "2026-06-04T16:00:00.000Z",
+    "updated_at": "2026-06-04T16:00:00.000Z"
+  },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
 }
 ```
 
 ### `POST /acl/check`
 
-**Request:**
+**Request:** (`tenant_id` is inferred from the caller's JWT)
 ```json
 {
   "user_id": "user-uuid",
-  "tenant_id": "tenant-uuid",
   "resource_type": "expense",
   "resource_id": "expense-uuid",
   "permission": "approve"
 }
 ```
 
-**Response 200:**
+**Response 200:** (`source` is `"cache"` on a cache hit, `"db"` on a DB lookup)
 ```json
 {
   "success": true,
   "data": {
     "allowed": true,
-    "source": "acl",
-    "evaluated_at": "2026-06-04T16:00:00Z"
-  }
+    "source": "db"
+  },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
 }
 ```
 
@@ -500,46 +622,42 @@
 }
 ```
 
-**Response 200:**
+**Response 200:** (`source` is `"cache"` | `"rbac"` | `"acl"` | `"none"`)
 ```json
 {
   "success": true,
   "data": {
     "allowed": true,
     "source": "rbac",
-    "permission": "expense:write",
-    "evaluated_at": "2026-06-04T16:00:00Z"
-  }
+    "evaluated_at": "2026-06-04T16:00:00.000Z"
+  },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
 }
 ```
 
 ### `POST /authorization/check-batch`
 
-**Request:**
+**Request:** Each item in `checks` is a full `CheckAuthzDto` — `user_id` and `tenant_id` are required per item.
 ```json
 {
-  "user_id": "user-uuid",
-  "tenant_id": "tenant-uuid",
   "checks": [
-    { "permission": "expense:read" },
-    { "permission": "expense:write" },
-    { "permission": "expense:approve", "resource_type": "expense", "resource_id": "exp-123" }
+    { "user_id": "user-uuid", "tenant_id": "tenant-uuid", "permission": "expense:read" },
+    { "user_id": "user-uuid", "tenant_id": "tenant-uuid", "permission": "expense:write" },
+    { "user_id": "user-uuid", "tenant_id": "tenant-uuid", "permission": "expense:approve", "resource_type": "expense", "resource_id": "exp-123" }
   ]
 }
 ```
 
-**Response 200:**
+**Response 200:** Ordered array matching the `checks` input — no wrapper object.
 ```json
 {
   "success": true,
-  "data": {
-    "results": [
-      { "permission": "expense:read", "allowed": true, "source": "rbac" },
-      { "permission": "expense:write", "allowed": true, "source": "rbac" },
-      { "permission": "expense:approve", "allowed": false, "source": null }
-    ],
-    "evaluated_at": "2026-06-04T16:00:00Z"
-  }
+  "data": [
+    { "allowed": true,  "source": "rbac", "evaluated_at": "2026-06-04T16:00:00.000Z" },
+    { "allowed": true,  "source": "rbac", "evaluated_at": "2026-06-04T16:00:00.000Z" },
+    { "allowed": false, "source": "none", "evaluated_at": "2026-06-04T16:00:00.000Z" }
+  ],
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
 }
 ```
 
@@ -571,38 +689,42 @@
   "success": true,
   "data": {
     "access_token": "eyJhbGciOiJIUzI1NiIs...",
-    "token_type": "Bearer",
-    "expires_in": 1800,
-    "identity_type": "IMPERSONATION",
-    "impersonating": {
-      "user_id": "target-user-uuid",
-      "tenant_id": "target-tenant-uuid"
-    }
-  }
+    "expires_in": 1800
+  },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
 }
+```
+
+> **Note:** The JWT payload contains `identity_type: "IMPERSONATION"` and `impersonator_id`. These are embedded in the token, not returned as top-level response fields.
 ```
 
 ### `GET /super-admin/audit-logs`
 
-**Query params:** `?tenant_id=<uuid>&actor_id=<uuid>&action=AUTH_LOGIN_SUCCESS&from=2026-01-01&to=2026-06-04&page=1&limit=50`
+**Query params:** `?tenant_id=<uuid>&actor_id=<uuid>&event_type=AUTH_LOGIN_SUCCESS&resource_type=user&date_from=2026-01-01&date_to=2026-06-04&page=1&limit=50`
 
 **Response 200:**
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "log-uuid",
-      "actor_id": "user-uuid",
-      "actor_type": "USER",
-      "action": "AUTH_LOGIN_SUCCESS",
-      "tenant_id": "tenant-uuid",
-      "ip_address": "192.168.1.1",
-      "correlation_id": "req-uuid",
-      "created_at": "2026-06-04T16:00:00Z"
-    }
-  ],
-  "meta": { "total": 1234, "page": 1, "limit": 50 }
+  "data": {
+    "data": [
+      {
+        "id": "log-uuid",
+        "created_at": "2026-06-04T16:00:00.000Z",
+        "event_type": "AUTH_LOGIN_SUCCESS",
+        "tenant_id": "tenant-uuid",
+        "actor_id": "user-uuid",
+        "actor_type": "USER",
+        "resource": { "type": "user", "id": "user-uuid" },
+        "metadata": { "ip_address": "192.168.1.1", "correlation_id": "req-uuid" },
+        "changes": null
+      }
+    ],
+    "total": 1234,
+    "page": 1,
+    "limit": 50
+  },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
 }
 ```
 
@@ -616,13 +738,26 @@
 | `GET` | `/health/ready` | Readiness check (DB, Redis, Kafka) | No |
 | `GET` | `/health/live` | Liveness probe | No |
 
-### `GET /health/ready`
+### `GET /health/live`
 
 **Response 200:**
+```json
+{ "status": "ok", "timestamp": "2026-06-04T16:00:00.000Z" }
+```
+
+### `GET /health/ready`
+
+**Response 200** (NestJS Terminus format):
 ```json
 {
   "status": "ok",
   "info": {
+    "database": { "status": "up" },
+    "redis": { "status": "up" },
+    "kafka": { "status": "up" }
+  },
+  "error": {},
+  "details": {
     "database": { "status": "up" },
     "redis": { "status": "up" },
     "kafka": { "status": "up" }
@@ -756,7 +891,7 @@ curl -X PATCH $BASE/tenants/$TENANT_ID \
 ```bash
 curl -X DELETE $BASE/tenants/$TENANT_ID \
   -H "Authorization: Bearer $SA_TOKEN"
-# Response: 204 No Content — tenant is soft-deactivated
+# Response: 200 { "success": true, "data": { "success": true }, "meta": {...} }
 ```
 
 ---
@@ -781,7 +916,7 @@ curl -X POST $BASE/users \
 #### GET /users
 
 ```bash
-curl "$BASE/users?page=1&limit=20&search=jane" \
+curl "$BASE/users?page=1&limit=10" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -812,6 +947,7 @@ curl -X PATCH $BASE/users/$JANE_USER_ID/status \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"is_active": false}'
+# Response: 200 { "success": true, "data": { "success": true }, "meta": {...} }
 ```
 
 #### GET /users/:id/hierarchy
@@ -875,7 +1011,7 @@ curl -X PATCH $BASE/roles/$FINANCE_ROLE_ID \
 ```bash
 curl -X DELETE $BASE/roles/$FINANCE_ROLE_ID \
   -H "Authorization: Bearer $TOKEN"
-# Response: 204 No Content — only custom (non-system) roles can be deleted
+# Response: 200 { "success": true, "data": { "success": true }, "meta": {...} } — only custom (non-system) roles can be deleted
 ```
 
 #### PATCH /roles/:id/permissions
@@ -957,7 +1093,7 @@ curl $BASE/users/$JANE_USER_ID/permission-overrides \
 ```bash
 curl -X DELETE $BASE/users/$JANE_USER_ID/permission-overrides/$OVERRIDE_ID \
   -H "Authorization: Bearer $TOKEN"
-# Response: 204 No Content
+# Response: 200 { "success": true, "data": { "success": true }, "meta": {...} }
 ```
 
 ---
@@ -990,7 +1126,7 @@ curl "$BASE/acl?resource_type=expense&resource_id=$EXPENSE_ID" \
 ```bash
 curl -X DELETE $BASE/acl/$ACL_ID \
   -H "Authorization: Bearer $TOKEN"
-# Response: 204 No Content
+# Response: 200 { "success": true, "data": { "success": true }, "meta": {...} }
 ```
 
 #### POST /acl/check
@@ -1001,7 +1137,6 @@ curl -X POST $BASE/acl/check \
   -H "Content-Type: application/json" \
   -d '{
     "user_id": "'$JANE_USER_ID'",
-    "tenant_id": "'$TENANT_ID'",
     "resource_type": "expense",
     "resource_id": "'$EXPENSE_ID'",
     "permission": "approve"
@@ -1034,12 +1169,10 @@ curl -X POST $BASE/authorization/check-batch \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": "'$JANE_USER_ID'",
-    "tenant_id": "'$TENANT_ID'",
     "checks": [
-      { "permission": "expense:read" },
-      { "permission": "expense:write" },
-      { "permission": "expense:approve", "resource_type": "expense", "resource_id": "'$EXPENSE_ID'" }
+      { "user_id": "'$JANE_USER_ID'", "tenant_id": "'$TENANT_ID'", "permission": "expense:read" },
+      { "user_id": "'$JANE_USER_ID'", "tenant_id": "'$TENANT_ID'", "permission": "expense:write" },
+      { "user_id": "'$JANE_USER_ID'", "tenant_id": "'$TENANT_ID'", "permission": "expense:approve", "resource_type": "expense", "resource_id": "'$EXPENSE_ID'" }
     ]
   }'
 ```
@@ -1065,7 +1198,7 @@ curl "$BASE/super-admin/tenants/$TENANT_ID/users?page=1&limit=20" \
 #### GET /super-admin/audit-logs
 
 ```bash
-curl "$BASE/super-admin/audit-logs?tenant_id=$TENANT_ID&action=AUTH_LOGIN_SUCCESS&from=2026-01-01&to=2026-12-31&page=1&limit=50" \
+curl "$BASE/super-admin/audit-logs?tenant_id=$TENANT_ID&event_type=AUTH_LOGIN_SUCCESS&date_from=2026-01-01&date_to=2026-12-31&page=1&limit=50" \
   -H "Authorization: Bearer $SA_TOKEN"
 ```
 
