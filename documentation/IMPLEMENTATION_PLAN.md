@@ -418,14 +418,14 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
 
 ### Phase 8 — Docker, SDK & Validation
 
-- [ ] **8.1** Create Docker Compose for development
+- [x] **8.1** Create Docker Compose for development
   - File: `docker-compose.yml`
   - Services: `iam` (NestJS app), `postgres` (16), `redis` (7-alpine), `zookeeper`, `kafka`
   - Reference: Design doc Appendix B
   - File: `Dockerfile` — multi-stage build (builder + production)
   - File: `.dockerignore`
 
-- [ ] **8.2** Create `@iam/nestjs-sdk` package structure
+- [x] **8.2** Create `@iam/nestjs-sdk` package structure
   - Directory: `packages/iam-sdk/`
   - Files: `package.json`, `tsconfig.json`, `src/index.ts`
   - Copy guards (`jwt-auth.guard.ts`, `permission.guard.ts`, `acl.guard.ts`) adapted for SDK use
@@ -436,7 +436,7 @@ Build the IAM modular monolith bottom-up: infrastructure first (DB, Redis, Kafka
   - Create `iam.module.ts` — `IamModule.forRoot(options)` dynamic module
   - Key concern: SDK is a separate package. In monorepo, use npm workspaces or publish to private registry.
 
-- [ ] **8.3** Create README.md
+- [x] **8.3** Create README.md
   - Project overview, architecture summary
   - Prerequisites, setup instructions
   - API documentation link (Swagger at `/api/docs`)

@@ -34,3 +34,4 @@ Co-Authored-By: Antigravity <antigravity@deepmind.google.com>
 - `audit`: Kafka consumer, batch insertions, and query logic implemented.
 - `seeding`: Database seeds (permissions, roles, super-admin) and runner script implemented.
 - `health`: Terminus liveness/readiness probes and JSON structured logging interceptor implemented.
+- `sdk & docker`: Docker setup (Dockerfile, compose) and `@iam/nestjs-sdk` package implemented.
