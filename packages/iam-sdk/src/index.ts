@@ -12,4 +12,5 @@ export * from './decorators/identity-types.decorator';
 export * from './decorators/public.decorator';
 
 export * from './constants/identity-types.constant';
+export * from './constants/kafka.constant';
 export * from './utils/permission-matcher.util';

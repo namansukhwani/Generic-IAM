@@ -260,7 +260,7 @@ expense
 
 ### Action Items
 
-- [ ] **6.1** Create `src/common/constants/kafka.constant.ts`:
+- [x] **6.1** Create `src/common/constants/kafka.constant.ts`:
   ```typescript
   export const KAFKA_TOPICS = {
     IAM_AUDIT: 'iam.audit',
@@ -274,9 +274,9 @@ expense
     IAM_CACHE_INVALIDATION: 'iam-cache-invalidation',
   } as const;
   ```
-- [ ] **6.2** Replace all hardcoded `'iam.audit'`, `'iam.permission.changed'`, `'iam.user.changed'` strings across all services with `KAFKA_TOPICS.*`
-- [ ] **6.3** Replace hardcoded `@EventPattern('iam.permission.changed')` in [event.consumer.ts](file:///Users/naman.sukhwani/IAM/src/event/event.consumer.ts) and [audit.consumer.ts](file:///Users/naman.sukhwani/IAM/src/modules/audit/audit.consumer.ts) with constant references
-- [ ] **6.4** Export Kafka constants from SDK so consumer services use same topic names
+- [x] **6.2** Replace all hardcoded `'iam.audit'`, `'iam.permission.changed'`, `'iam.user.changed'` strings across all services with `KAFKA_TOPICS.*`
+- [x] **6.3** Replace hardcoded `@EventPattern('iam.permission.changed')` in [event.consumer.ts](file:///Users/naman.sukhwani/IAM/src/event/event.consumer.ts) and [audit.consumer.ts](file:///Users/naman.sukhwani/IAM/src/modules/audit/audit.consumer.ts) with constant references
+- [x] **6.4** Export Kafka constants from SDK so consumer services use same topic names
 
 ---
 

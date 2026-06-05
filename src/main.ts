@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { KAFKA_CONSUMER_GROUPS } from './common/constants/kafka.constant';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -62,7 +63,7 @@ async function bootstrap() {
       consumer: {
         groupId: configService.get<string>(
           'kafka.groupId',
-          'iam-service-group',
+          KAFKA_CONSUMER_GROUPS.IAM_AUDIT_CONSUMER,
         ),
       },
     },
