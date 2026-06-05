@@ -32,6 +32,13 @@ export class RoleService extends BaseService<RoleEntity> {
     super(defaultRepository, request);
   }
 
+  private get userRoleRepo(): Repository<UserRoleEntity> {
+    if (this.request?.entityManager) {
+      return this.request.entityManager.getRepository(UserRoleEntity);
+    }
+    return this.userRoleRepository;
+  }
+
   async createCustomRole(
     tenantId: string,
     dto: CreateRoleDto,
@@ -122,7 +129,7 @@ export class RoleService extends BaseService<RoleEntity> {
       throw new BadRequestException('Cannot delete system roles');
     }
 
-    const assignedUsersCount = await this.userRoleRepository.count({
+    const assignedUsersCount = await this.userRoleRepo.count({
       where: { role_id: role.id },
     });
 

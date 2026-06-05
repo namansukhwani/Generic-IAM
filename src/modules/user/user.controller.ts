@@ -59,7 +59,6 @@ export class UserController {
     @Query('limit') limit = 10,
   ) {
     const result = await this.userService.findPaginated(page, limit, {
-      // where: { tenant_id: user.tenant_id || '' },
       order: { created_at: 'DESC' },
     });
     return {

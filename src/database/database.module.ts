@@ -21,6 +21,7 @@ import { ConfigService } from '@nestjs/config';
         extra: {
           max: 20,
         },
+        logging: true,
       }),
     }),
   ],

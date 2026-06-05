@@ -27,13 +27,20 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
     super(defaultRepository, request);
   }
 
+  private get permissionRepo(): Repository<PermissionEntity> {
+    if (this.request?.entityManager) {
+      return this.request.entityManager.getRepository(PermissionEntity);
+    }
+    return this.permissionRepository;
+  }
+
   async addOverride(
     userId: string,
     tenantId: string,
     dto: CreateOverrideDto,
     actorId: string,
   ): Promise<UserPermissionOverrideEntity> {
-    const permission = await this.permissionRepository.findOne({
+    const permission = await this.permissionRepo.findOne({
       where: { id: dto.permission_id },
     });
     if (!permission) throw new NotFoundException('Permission not found');
@@ -127,7 +134,7 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
 
     let rolePermissions: PermissionEntity[] = [];
     if (roleIds.length > 0) {
-      const qb = this.permissionRepository
+      const qb = this.permissionRepo
         .createQueryBuilder('p')
         .innerJoin('role_permissions', 'rp', 'rp.permission_id = p.id')
         .where('rp.role_id IN (:...roleIds)', { roleIds });

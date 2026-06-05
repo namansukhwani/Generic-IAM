@@ -32,11 +32,17 @@ export class TenantTransactionInterceptor implements NestInterceptor {
           switchMap(() => {
             const setConfigPromise =
               tenantId && !isSuperAdmin
-                ? queryRunner.query(
-                    `SELECT set_config('app.current_tenant_id', $1, true);`,
-                    [tenantId],
-                  )
-                : Promise.resolve();
+                ? queryRunner
+                    .query('SET ROLE iam_tenant_user;')
+                    .then(() =>
+                      queryRunner.query(
+                        `SELECT set_config('app.current_tenant_id', $1, true);`,
+                        [tenantId],
+                      ),
+                    )
+                : isSuperAdmin
+                  ? queryRunner.query('SET ROLE iam_superadmin;')
+                  : Promise.resolve();
 
             return from(setConfigPromise).pipe(
               switchMap(() => {
@@ -60,12 +66,16 @@ export class TenantTransactionInterceptor implements NestInterceptor {
                   }),
                   finalize(() => {
                     if (!queryRunner.isReleased) {
-                      queryRunner.release().catch((releaseErr) => {
-                        console.error(
-                          'Failed to release query runner',
-                          releaseErr,
-                        );
-                      });
+                      queryRunner
+                        .query('RESET ROLE;')
+                        .catch(() => {})
+                        .then(() => queryRunner.release())
+                        .catch((releaseErr) => {
+                          console.error(
+                            'Failed to release query runner',
+                            releaseErr,
+                          );
+                        });
                     }
                   }),
                 );

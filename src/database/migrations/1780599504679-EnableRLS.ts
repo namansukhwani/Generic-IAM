@@ -2,15 +2,27 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class EnableRLS1780599504679 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Create superadmin role
+    // Create superadmin and tenant user roles
     await queryRunner.query(`
             DO $$
             BEGIN
                 IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'iam_superadmin') THEN
                     CREATE ROLE iam_superadmin BYPASSRLS;
                 END IF;
+                IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'iam_tenant_user') THEN
+                    CREATE ROLE iam_tenant_user;
+                END IF;
             END $$;
         `);
+
+    await queryRunner.query(`GRANT iam_superadmin TO iam_app;`);
+    await queryRunner.query(`GRANT iam_tenant_user TO iam_app;`);
+    await queryRunner.query(
+      `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO iam_tenant_user;`,
+    );
+    await queryRunner.query(
+      `GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO iam_tenant_user;`,
+    );
 
     // Enable RLS
     const tables = [
@@ -94,5 +106,6 @@ export class EnableRLS1780599504679 implements MigrationInterface {
     }
 
     await queryRunner.query(`DROP ROLE IF EXISTS iam_superadmin;`);
+    await queryRunner.query(`DROP ROLE IF EXISTS iam_tenant_user;`);
   }
 }
