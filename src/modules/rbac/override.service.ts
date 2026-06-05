@@ -2,7 +2,10 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  Inject,
+  Scope,
 } from '@nestjs/common';
+import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserPermissionOverrideEntity } from './entities/user-permission-override.entity';
@@ -12,18 +15,22 @@ import { PermissionEntity } from './entities/permission.entity';
 import { EventProducer } from '../../event/event.producer';
 import { AuditEventType } from '../../common/constants/audit-events.constant';
 import { BaseService } from '../../common/base/base.service';
+import type { RequestContext } from '../../common/interfaces/request-context.interface';
 
-@Injectable()
+import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
+
+@Injectable({ scope: Scope.REQUEST })
 export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
   constructor(
     @InjectRepository(UserPermissionOverrideEntity)
-    protected readonly overrideRepository: Repository<UserPermissionOverrideEntity>,
+    protected readonly defaultRepository: Repository<UserPermissionOverrideEntity>,
     @InjectRepository(PermissionEntity)
     private readonly permissionRepository: Repository<PermissionEntity>,
     private readonly assignmentService: AssignmentService,
     private readonly eventProducer: EventProducer,
+    @Inject(REQUEST) protected readonly request: RequestContext,
   ) {
-    super(overrideRepository);
+    super(defaultRepository, request);
   }
 
   async addOverride(
@@ -37,7 +44,7 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
     });
     if (!permission) throw new NotFoundException('Permission not found');
 
-    const existing = await this.overrideRepository.findOne({
+    const existing = await this.repository.findOne({
       where: {
         user_id: userId,
         permission_id: dto.permission_id,
@@ -52,13 +59,13 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
       // If updating, delete existing first or just update it
       existing.override_type = dto.override_type;
       existing.reason = dto.reason || '';
-      await this.overrideRepository.save(existing);
+      await this.repository.save(existing);
 
       this.emitOverrideEvent(userId, tenantId, actorId, 'updated', dto);
       return existing;
     }
 
-    const override = this.overrideRepository.create({
+    const override = this.repository.create({
       tenant_id: tenantId,
       user_id: userId,
       permission_id: dto.permission_id,
@@ -66,7 +73,7 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
       reason: dto.reason || '',
     });
 
-    const saved = await this.overrideRepository.save(override);
+    const saved = await this.repository.save(override);
     this.emitOverrideEvent(userId, tenantId, actorId, 'added', dto);
     return saved;
   }
@@ -77,14 +84,14 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
     tenantId: string,
     actorId: string,
   ): Promise<void> {
-    const override = await this.overrideRepository.findOne({
+    const override = await this.repository.findOne({
       where: { id: overrideId, user_id: userId, tenant_id: tenantId },
     });
 
     if (override) {
-      await this.overrideRepository.remove(override);
+      await this.repository.remove(override);
 
-      this.eventProducer.emit('iam.audit', {
+      this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
         event_type: AuditEventType.PERMISSION_OVERRIDE_REMOVED,
         tenant_id: tenantId,
         actor_id: actorId,
@@ -93,7 +100,7 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
         payload: { permission_id: override.permission_id },
       });
 
-      this.eventProducer.emit('iam.permission.changed', {
+      this.eventProducer.emit(KAFKA_TOPICS.IAM_PERMISSION_CHANGED, {
         event_type: 'PERMISSION_CHANGED',
         tenant_id: tenantId,
         user_id: userId,
@@ -105,7 +112,7 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
     userId: string,
     tenantId: string,
   ): Promise<UserPermissionOverrideEntity[]> {
-    return this.overrideRepository.find({
+    return this.repository.find({
       where: { user_id: userId, tenant_id: tenantId },
       relations: { permission: true },
     });
@@ -165,7 +172,7 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
     action: string,
     dto: any,
   ) {
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.PERMISSION_OVERRIDE_ADDED,
       tenant_id: tenantId,
       actor_id: actorId,
@@ -178,7 +185,7 @@ export class OverrideService extends BaseService<UserPermissionOverrideEntity> {
       },
     });
 
-    this.eventProducer.emit('iam.permission.changed', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_PERMISSION_CHANGED, {
       event_type: 'PERMISSION_CHANGED',
       tenant_id: tenantId,
       user_id: userId,

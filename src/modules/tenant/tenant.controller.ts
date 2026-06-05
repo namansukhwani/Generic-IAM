@@ -13,11 +13,11 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { TenantService } from './tenant.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
-import { IdentityTypes } from '../../common/decorators/identity-types.decorator';
+import { IdentityTypes  } from '@iam/nestjs-sdk';
 import { IdentityType } from '../../common/constants/identity-types.constant';
-import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import { RequirePermissions  } from '@iam/nestjs-sdk';
 import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.constant';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentUser  } from '@iam/nestjs-sdk';
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 
 @ApiTags('Tenants')

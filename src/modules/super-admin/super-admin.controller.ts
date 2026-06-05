@@ -12,7 +12,7 @@ import {
 import { SuperAdminService } from './super-admin.service';
 import { ImpersonateDto } from './dto/impersonate.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentUser  } from '@iam/nestjs-sdk';
 
 @Controller('super-admin')
 @UseGuards(AuthGuard('jwt'))

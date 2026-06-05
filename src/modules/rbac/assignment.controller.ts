@@ -12,7 +12,7 @@ import { OverrideService } from './override.service';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { CreateOverrideDto } from './dto/create-override.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentUser  } from '@iam/nestjs-sdk';
 
 @Controller('users/:userId')
 @UseGuards(AuthGuard('jwt'))

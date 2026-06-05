@@ -11,7 +11,7 @@ import {
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentUser  } from '@iam/nestjs-sdk';
 
 @Controller('roles')
 @UseGuards(AuthGuard('jwt'))

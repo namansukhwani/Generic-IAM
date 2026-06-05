@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, Scope } from '@nestjs/common';
+import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -9,16 +10,20 @@ import { CheckAclDto } from './dto/check-acl.dto';
 import { AclQueryDto } from './dto/acl-query.dto';
 import { EventProducer } from '../../event/event.producer';
 import { BaseService } from '../../common/base/base.service';
+import type { RequestContext } from '../../common/interfaces/request-context.interface';
 
-@Injectable()
+import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
+
+@Injectable({ scope: Scope.REQUEST })
 export class AclService extends BaseService<ResourceAclEntity> {
   constructor(
     @InjectRepository(ResourceAclEntity)
-    protected readonly aclRepository: Repository<ResourceAclEntity>,
+    protected readonly defaultRepository: Repository<ResourceAclEntity>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly eventProducer: EventProducer,
+    @Inject(REQUEST) protected readonly request: RequestContext,
   ) {
-    super(aclRepository);
+    super(defaultRepository, request);
   }
 
   private getCacheKey(
@@ -36,7 +41,7 @@ export class AclService extends BaseService<ResourceAclEntity> {
     dto: CreateAclDto,
     actorId: string,
   ): Promise<ResourceAclEntity> {
-    const existing = await this.aclRepository.findOne({
+    const existing = await this.repository.findOne({
       where: {
         tenant_id: tenantId,
         user_id: dto.user_id,
@@ -50,7 +55,7 @@ export class AclService extends BaseService<ResourceAclEntity> {
       return existing;
     }
 
-    const acl = this.aclRepository.create({
+    const acl = this.repository.create({
       tenant_id: tenantId,
       user_id: dto.user_id,
       resource_type: dto.resource_type,
@@ -58,7 +63,7 @@ export class AclService extends BaseService<ResourceAclEntity> {
       permission: dto.permission,
     });
 
-    const saved = await this.aclRepository.save(acl);
+    const saved = await this.repository.save(acl);
 
     // Invalidate cache since permission is added
     const cacheKey = this.getCacheKey(
@@ -70,7 +75,7 @@ export class AclService extends BaseService<ResourceAclEntity> {
     );
     await this.cacheManager.del(cacheKey);
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: 'ACL_CREATED',
       tenant_id: tenantId,
       actor_id: actorId,
@@ -92,7 +97,7 @@ export class AclService extends BaseService<ResourceAclEntity> {
     if (query.resource_type) whereClause.resource_type = query.resource_type;
     if (query.resource_id) whereClause.resource_id = query.resource_id;
 
-    return this.aclRepository.find({ where: whereClause });
+    return this.repository.find({ where: whereClause });
   }
 
   async deleteAcl(
@@ -100,12 +105,12 @@ export class AclService extends BaseService<ResourceAclEntity> {
     tenantId: string,
     actorId: string,
   ): Promise<void> {
-    const acl = await this.aclRepository.findOne({
+    const acl = await this.repository.findOne({
       where: { id, tenant_id: tenantId },
     });
     if (!acl) throw new NotFoundException('ACL not found');
 
-    await this.aclRepository.remove(acl);
+    await this.repository.remove(acl);
 
     // Invalidate cache
     const cacheKey = this.getCacheKey(
@@ -117,7 +122,7 @@ export class AclService extends BaseService<ResourceAclEntity> {
     );
     await this.cacheManager.del(cacheKey);
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: 'ACL_DELETED',
       tenant_id: tenantId,
       actor_id: actorId,
@@ -144,7 +149,7 @@ export class AclService extends BaseService<ResourceAclEntity> {
       return { allowed: cached, source: 'cache' };
     }
 
-    const count = await this.aclRepository.count({
+    const count = await this.repository.count({
       where: {
         tenant_id: tenantId,
         user_id: dto.user_id,

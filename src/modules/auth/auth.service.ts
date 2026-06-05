@@ -20,6 +20,8 @@ import { EventProducer } from '../../event/event.producer';
 import { AuditEventType } from '../../common/constants/audit-events.constant';
 import * as crypto from 'crypto';
 
+import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -37,7 +39,7 @@ export class AuthService {
       where: { email: dto.email },
     });
     if (!user) {
-      this.eventProducer.emit('iam.audit', {
+      this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
         event_type: AuditEventType.AUTH_LOGIN_FAILED,
         payload: { email: dto.email, reason: 'User not found' },
       });
@@ -45,7 +47,7 @@ export class AuthService {
     }
 
     if (!user.is_active) {
-      this.eventProducer.emit('iam.audit', {
+      this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
         event_type: AuditEventType.AUTH_LOGIN_FAILED,
         payload: { email: dto.email, reason: 'User inactive' },
       });
@@ -54,7 +56,7 @@ export class AuthService {
 
     const isMatch = await comparePassword(dto.password, user.password_hash);
     if (!isMatch) {
-      this.eventProducer.emit('iam.audit', {
+      this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
         event_type: AuditEventType.AUTH_LOGIN_FAILED,
         payload: { email: dto.email, reason: 'Invalid password' },
       });
@@ -64,7 +66,7 @@ export class AuthService {
     const { access_token, refresh_token, expires_in } =
       await this.generateTokens(user);
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.AUTH_LOGIN_SUCCESS,
       tenant_id: user.tenant_id,
       actor_id: user.id,
@@ -111,7 +113,7 @@ export class AuthService {
     const { access_token, refresh_token, expires_in } =
       await this.generateTokens(user);
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.AUTH_TOKEN_REFRESHED,
       tenant_id: user.tenant_id,
       actor_id: user.id,
@@ -126,7 +128,7 @@ export class AuthService {
   async logout(userId: string, tenantId: string): Promise<void> {
     await this.refreshTokenRepository.delete({ user_id: userId });
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.AUTH_LOGOUT,
       tenant_id: tenantId,
       actor_id: userId,

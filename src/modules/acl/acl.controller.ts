@@ -15,7 +15,7 @@ import { CreateAclDto } from './dto/create-acl.dto';
 import { CheckAclDto } from './dto/check-acl.dto';
 import { AclQueryDto } from './dto/acl-query.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentUser  } from '@iam/nestjs-sdk';
 
 @Controller('acl')
 @UseGuards(AuthGuard('jwt'))

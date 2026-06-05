@@ -4,17 +4,19 @@
   "description": "IAM SDK for consuming microservices",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/microservices": "^11.1.24",
     "@nestjs/passport": "^11.0.5",
-    "cache-manager": "^7.2.8",
-    "cacheable": "^2.3.5",
-    "keyv": "^5.6.0",
+    "ioredis": "^5.11.1",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {

@@ -2,7 +2,10 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Inject,
+  Scope,
 } from '@nestjs/common';
+import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { TenantEntity } from './entities/tenant.entity';
@@ -17,16 +20,20 @@ import { SystemRole } from '../../common/constants/system-roles.constant';
 import { EventProducer } from '../../event/event.producer';
 import { AuditEventType } from '../../common/constants/audit-events.constant';
 import { BaseService } from '../../common/base/base.service';
+import type { RequestContext } from '../../common/interfaces/request-context.interface';
 
-@Injectable()
+import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
+
+@Injectable({ scope: Scope.REQUEST })
 export class TenantService extends BaseService<TenantEntity> {
   constructor(
     @InjectRepository(TenantEntity)
-    protected readonly repository: Repository<TenantEntity>,
+    protected readonly defaultRepository: Repository<TenantEntity>,
     private readonly dataSource: DataSource,
     private readonly eventProducer: EventProducer,
+    @Inject(REQUEST) protected readonly request: RequestContext,
   ) {
-    super(repository);
+    super(defaultRepository, request);
   }
 
   async createTenantWithAdmin(
@@ -85,7 +92,7 @@ export class TenantService extends BaseService<TenantEntity> {
     );
 
     // Emit Events
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.TENANT_CREATED,
       tenant_id: savedTenant.id,
       actor_id: actorId,
@@ -103,7 +110,7 @@ export class TenantService extends BaseService<TenantEntity> {
     actorId: string,
   ): Promise<TenantEntity> {
     const tenant = await this.update(id, dto);
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.TENANT_UPDATED,
       tenant_id: tenant.id,
       actor_id: actorId,
@@ -116,7 +123,7 @@ export class TenantService extends BaseService<TenantEntity> {
 
   async deactivateTenant(id: string, actorId: string): Promise<void> {
     await this.update(id, { is_active: false });
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.TENANT_DEACTIVATED,
       tenant_id: id,
       actor_id: actorId,

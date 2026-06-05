@@ -1,17 +1,19 @@
 import { Module, Global } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER, APP_PIPE } from '@nestjs/core';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { IdentityTypeGuard } from './guards/identity-type.guard';
-import { PermissionGuard } from './guards/permission.guard';
-import { AclGuard } from './guards/acl.guard';
+import { JwtAuthGuard, IdentityTypeGuard } from '@iam/nestjs-sdk';
+import { IamPermissionGuard } from './guards/iam-permission.guard';
+import { IamAclGuard } from './guards/iam-acl.guard';
 import { CorrelationIdInterceptor } from './interceptors/correlation-id.interceptor';
 import { ResponseTransformInterceptor } from './interceptors/response-transform.interceptor';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { TenantValidationPipe } from './pipes/tenant-validation.pipe';
 
+import { AuthorizationModule } from '../modules/authorization/authorization.module';
+
 @Global()
 @Module({
+  imports: [AuthorizationModule],
   providers: [
     {
       provide: APP_GUARD,
@@ -23,11 +25,11 @@ import { TenantValidationPipe } from './pipes/tenant-validation.pipe';
     },
     {
       provide: APP_GUARD,
-      useClass: PermissionGuard,
+      useClass: IamPermissionGuard,
     },
     {
       provide: APP_GUARD,
-      useClass: AclGuard,
+      useClass: IamAclGuard,
     },
     {
       provide: APP_INTERCEPTOR,

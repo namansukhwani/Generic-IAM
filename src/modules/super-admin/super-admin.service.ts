@@ -13,6 +13,8 @@ import { EventProducer } from '../../event/event.producer';
 import { AuditService } from '../audit/audit.service';
 import { AuditQueryDto } from '../audit/dto/audit-query.dto';
 
+import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
+
 @Injectable()
 export class SuperAdminService {
   constructor(
@@ -52,7 +54,7 @@ export class SuperAdminService {
       expiresIn: accessTtl,
     });
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: 'IMPERSONATION_STARTED',
       tenant_id: dto.tenant_id,
       actor_id: superAdminId,

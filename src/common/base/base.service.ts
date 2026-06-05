@@ -8,8 +8,20 @@ import type { DeepPartial } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { PaginatedResponse } from '../interfaces/paginated-response.interface';
 
+import { RequestContext } from '../interfaces/request-context.interface';
+
 export class BaseService<T extends ObjectLiteral> {
-  constructor(protected readonly repository: Repository<T>) {}
+  constructor(
+    protected readonly defaultRepository: Repository<T>,
+    protected readonly request?: RequestContext,
+  ) {}
+
+  protected get repository(): Repository<T> {
+    if (this.request?.entityManager) {
+      return this.request.entityManager.getRepository(this.defaultRepository.target);
+    }
+    return this.defaultRepository;
+  }
 
   async findAll(options?: FindManyOptions<T>): Promise<T[]> {
     return this.repository.find(options);

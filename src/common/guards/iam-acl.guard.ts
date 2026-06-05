@@ -1,19 +1,23 @@
 import {
   Injectable,
-  CanActivate,
   ExecutionContext,
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ACL_KEY, AclMetadata } from '../decorators/require-acl.decorator';
+import { AclGuard, ACL_KEY, AclMetadata, IdentityType } from '@iam/nestjs-sdk';
+import { AuthorizationService } from '../../modules/authorization/authorization.service';
 import { RequestContext } from '../interfaces/request-context.interface';
-import { IdentityType } from '../constants/identity-types.constant';
 
 @Injectable()
-export class AclGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+export class IamAclGuard extends AclGuard {
+  constructor(
+    protected reflector: Reflector,
+    private readonly authorizationService: AuthorizationService,
+  ) {
+    super(reflector);
+  }
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const aclMeta = this.reflector.getAllAndOverride<AclMetadata>(ACL_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -30,7 +34,7 @@ export class AclGuard implements CanActivate {
       throw new ForbiddenException('Authentication required');
     }
 
-    if ((user.identity_type as IdentityType) === IdentityType.SUPER_ADMIN) {
+    if (user.identity_type === IdentityType.SUPER_ADMIN) {
       return true;
     }
 
@@ -39,11 +43,15 @@ export class AclGuard implements CanActivate {
       throw new ForbiddenException('Resource ID not found in request');
     }
 
-    // TODO: In Phase 4/5, inject AclService to check DB/Redis for resource-level permission
-    // const hasAcl = await this.aclService.checkAcl(user.tenant_id, user.sub, aclMeta.resource, resourceId, aclMeta.action);
-    const hasAcl = false; // Mock
+    const result = await this.authorizationService.check({
+      tenant_id: user.tenant_id!,
+      user_id: user.sub,
+      permission: aclMeta.action,
+      resource_type: aclMeta.resource,
+      resource_id: resourceId as string,
+    });
 
-    if (!hasAcl) {
+    if (!result.allowed) {
       throw new ForbiddenException('Insufficient resource ACL');
     }
 

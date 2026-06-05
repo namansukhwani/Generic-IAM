@@ -6,7 +6,7 @@ import { IdentityType } from '../constants/identity-types.constant';
 
 @Injectable()
 export class AclGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(protected reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const aclMeta = this.reflector.getAllAndOverride<AclMetadata>(ACL_KEY, [

@@ -1,10 +1,10 @@
 import { DynamicModule, Module, Global } from '@nestjs/common';
 import { IamClientService } from './iam-client.service';
-import { PermissionCacheService } from './permission-cache.service';
-import { CacheInvalidationConsumer } from './cache-invalidation.consumer';
+import { IamAuthzService } from './iam-authz.service';
 
 export interface IamModuleOptions {
   iamUrl: string;
+  redisUrl: string;
 }
 
 @Global()
@@ -18,11 +18,14 @@ export class IamModule {
           provide: 'IAM_URL',
           useValue: options.iamUrl,
         },
+        {
+          provide: 'REDIS_URL',
+          useValue: options.redisUrl,
+        },
         IamClientService,
-        PermissionCacheService,
+        IamAuthzService,
       ],
-      controllers: [CacheInvalidationConsumer],
-      exports: [IamClientService, PermissionCacheService, 'IAM_URL'],
+      exports: [IamClientService, IamAuthzService, 'IAM_URL'],
     };
   }
 }

@@ -2,7 +2,10 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
+  Scope,
 } from '@nestjs/common';
+import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RoleEntity } from './entities/role.entity';
@@ -10,15 +13,19 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { EventProducer } from '../../event/event.producer';
 import { AuditEventType } from '../../common/constants/audit-events.constant';
 import { BaseService } from '../../common/base/base.service';
+import type { RequestContext } from '../../common/interfaces/request-context.interface';
 
-@Injectable()
+import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
+
+@Injectable({ scope: Scope.REQUEST })
 export class RoleService extends BaseService<RoleEntity> {
   constructor(
     @InjectRepository(RoleEntity)
-    protected readonly repository: Repository<RoleEntity>,
+    protected readonly defaultRepository: Repository<RoleEntity>,
     private readonly eventProducer: EventProducer,
+    @Inject(REQUEST) protected readonly request: RequestContext,
   ) {
-    super(repository);
+    super(defaultRepository, request);
   }
 
   async createCustomRole(
@@ -35,7 +42,7 @@ export class RoleService extends BaseService<RoleEntity> {
 
     const savedRole = await this.repository.save(role);
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.ROLE_CREATED,
       tenant_id: tenantId,
       actor_id: actorId,
@@ -79,7 +86,7 @@ export class RoleService extends BaseService<RoleEntity> {
     Object.assign(role, dto);
     const updatedRole = await this.repository.save(role);
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.ROLE_UPDATED,
       tenant_id: tenantId,
       actor_id: actorId,
@@ -106,7 +113,7 @@ export class RoleService extends BaseService<RoleEntity> {
 
     await this.repository.remove(role);
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.ROLE_DELETED,
       tenant_id: tenantId,
       actor_id: actorId,

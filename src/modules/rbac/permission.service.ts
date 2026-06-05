@@ -2,7 +2,10 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
+  Scope,
 } from '@nestjs/common';
+import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PermissionEntity } from './entities/permission.entity';
@@ -11,22 +14,25 @@ import { RoleService } from './role.service';
 import { EventProducer } from '../../event/event.producer';
 import { AuditEventType } from '../../common/constants/audit-events.constant';
 import { BaseService } from '../../common/base/base.service';
+import type { RequestContext } from '../../common/interfaces/request-context.interface';
+import { KAFKA_TOPICS } from 'src/common/constants/kafka.constant';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class PermissionService extends BaseService<PermissionEntity> {
   constructor(
     @InjectRepository(PermissionEntity)
-    protected readonly permissionRepository: Repository<PermissionEntity>,
+    protected readonly defaultRepository: Repository<PermissionEntity>,
     @InjectRepository(RolePermissionEntity)
     private readonly rolePermissionRepository: Repository<RolePermissionEntity>,
     private readonly roleService: RoleService,
     private readonly eventProducer: EventProducer,
+    @Inject(REQUEST) protected readonly request: RequestContext,
   ) {
-    super(permissionRepository);
+    super(defaultRepository, request);
   }
 
   async findAllGlobal(): Promise<PermissionEntity[]> {
-    return this.permissionRepository.find();
+    return this.repository.find();
   }
 
   async assignToRole(
@@ -43,7 +49,7 @@ export class PermissionService extends BaseService<PermissionEntity> {
       );
     }
 
-    const permission = await this.permissionRepository.findOne({
+    const permission = await this.repository.findOne({
       where: { id: permissionId },
     });
     if (!permission) throw new NotFoundException('Permission not found');
@@ -63,7 +69,7 @@ export class PermissionService extends BaseService<PermissionEntity> {
 
     const saved = await this.rolePermissionRepository.save(mapping);
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.PERMISSION_ADDED_TO_ROLE,
       tenant_id: tenantId,
       actor_id: actorId,
@@ -72,7 +78,7 @@ export class PermissionService extends BaseService<PermissionEntity> {
       payload: { permission_id: permissionId },
     });
 
-    this.eventProducer.emit('iam.permission.changed', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_PERMISSION_CHANGED, {
       event_type: 'PERMISSION_CHANGED',
       tenant_id: tenantId,
       payload: { role_id: roleId },
@@ -102,7 +108,7 @@ export class PermissionService extends BaseService<PermissionEntity> {
     if (mapping) {
       await this.rolePermissionRepository.remove(mapping);
 
-      this.eventProducer.emit('iam.audit', {
+      this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
         event_type: AuditEventType.PERMISSION_REMOVED_FROM_ROLE,
         tenant_id: tenantId,
         actor_id: actorId,
@@ -111,7 +117,7 @@ export class PermissionService extends BaseService<PermissionEntity> {
         payload: { permission_id: permissionId },
       });
 
-      this.eventProducer.emit('iam.permission.changed', {
+      this.eventProducer.emit(KAFKA_TOPICS.IAM_PERMISSION_CHANGED, {
         event_type: 'PERMISSION_CHANGED',
         tenant_id: tenantId,
         payload: { role_id: roleId },

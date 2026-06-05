@@ -14,11 +14,11 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
-import { IdentityTypes } from '../../common/decorators/identity-types.decorator';
+import { IdentityTypes  } from '@iam/nestjs-sdk';
 import { IdentityType } from '../../common/constants/identity-types.constant';
-import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import { RequirePermissions  } from '@iam/nestjs-sdk';
 import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.constant';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentUser  } from '@iam/nestjs-sdk';
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 
 @ApiTags('Users')

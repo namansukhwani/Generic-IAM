@@ -1,4 +1,5 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, Scope } from '@nestjs/common';
+import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { UserEntity } from './entities/user.entity';
@@ -8,16 +9,20 @@ import { hashPassword } from '../../common/utils/password.util';
 import { EventProducer } from '../../event/event.producer';
 import { AuditEventType } from '../../common/constants/audit-events.constant';
 import { BaseService } from '../../common/base/base.service';
+import type { RequestContext } from '../../common/interfaces/request-context.interface';
 
-@Injectable()
+import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
+
+@Injectable({ scope: Scope.REQUEST })
 export class UserService extends BaseService<UserEntity> {
   constructor(
     @InjectRepository(UserEntity)
-    protected readonly repository: Repository<UserEntity>,
+    protected readonly defaultRepository: Repository<UserEntity>,
     private readonly dataSource: DataSource,
     private readonly eventProducer: EventProducer,
+    @Inject(REQUEST) protected readonly request: RequestContext,
   ) {
-    super(repository);
+    super(defaultRepository, request);
   }
 
   async createUser(
@@ -43,7 +48,7 @@ export class UserService extends BaseService<UserEntity> {
 
     const saved = await this.repository.save(user);
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.USER_CREATED,
       tenant_id: tenantId,
       actor_id: actorId,
@@ -68,7 +73,7 @@ export class UserService extends BaseService<UserEntity> {
     Object.assign(user, dto);
     const updated = await this.repository.save(user);
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.USER_UPDATED,
       tenant_id: tenantId,
       actor_id: actorId,
@@ -98,13 +103,13 @@ export class UserService extends BaseService<UserEntity> {
       : AuditEventType.USER_DEACTIVATED;
 
     // Also emit a general user changed event for cache invalidation
-    this.eventProducer.emit('iam.user.changed', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_USER_CHANGED, {
       event_type: eventType,
       tenant_id: tenantId,
       user_id: id,
     });
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: eventType,
       tenant_id: tenantId,
       actor_id: actorId,

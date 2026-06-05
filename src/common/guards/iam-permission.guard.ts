@@ -1,13 +1,25 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PERMISSIONS_KEY } from '../decorators/require-permissions.decorator';
+import {
+  PermissionGuard,
+  PERMISSIONS_KEY,
+  IdentityType,
+} from '@iam/nestjs-sdk';
+import { AuthorizationService } from '../../modules/authorization/authorization.service';
 import { RequestContext } from '../interfaces/request-context.interface';
-import { IdentityType } from '../constants/identity-types.constant';
-import { hasPermission } from '../utils/permission-matcher.util';
 
 @Injectable()
-export class PermissionGuard implements CanActivate {
-  constructor(protected reflector: Reflector) {}
+export class IamPermissionGuard extends PermissionGuard {
+  constructor(
+    protected reflector: Reflector,
+    private readonly authorizationService: AuthorizationService,
+  ) {
+    super(reflector);
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
@@ -30,13 +42,17 @@ export class PermissionGuard implements CanActivate {
       return true;
     }
 
-    // TODO: In Phase 4/5, inject CacheService/PermissionService to get effective permissions
-    // const effectivePermissions = await this.permissionService.getEffectivePermissions(user.tenant_id, user.sub);
-    const effectivePermissions = new Set<string>(); // Mock for now
+    const tenantId = user.tenant_id;
+    const userId = user.sub;
 
-    const hasAllRequired = requiredPermissions.every((perm) =>
-      hasPermission(effectivePermissions, perm),
-    );
+    const dtos = requiredPermissions.map((perm) => ({
+      tenant_id: tenantId!,
+      user_id: userId,
+      permission: perm,
+    }));
+
+    const results = await this.authorizationService.checkBatch(dtos);
+    const hasAllRequired = results.every((r) => r.allowed);
 
     if (!hasAllRequired) {
       throw new ForbiddenException('Insufficient permissions');

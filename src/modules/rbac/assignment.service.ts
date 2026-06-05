@@ -2,7 +2,10 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Inject,
+  Scope,
 } from '@nestjs/common';
+import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual, IsNull } from 'typeorm';
 import { UserRoleEntity } from './entities/user-role.entity';
@@ -12,18 +15,22 @@ import { EventProducer } from '../../event/event.producer';
 import { AuditEventType } from '../../common/constants/audit-events.constant';
 import { BaseService } from '../../common/base/base.service';
 import { UserEntity } from '../user/entities/user.entity';
+import type { RequestContext } from '../../common/interfaces/request-context.interface';
 
-@Injectable()
+import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
+
+@Injectable({ scope: Scope.REQUEST })
 export class AssignmentService extends BaseService<UserRoleEntity> {
   constructor(
     @InjectRepository(UserRoleEntity)
-    protected readonly userRoleRepository: Repository<UserRoleEntity>,
+    protected readonly defaultRepository: Repository<UserRoleEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
     private readonly roleService: RoleService,
     private readonly eventProducer: EventProducer,
+    @Inject(REQUEST) protected readonly request: RequestContext,
   ) {
-    super(userRoleRepository);
+    super(defaultRepository, request);
   }
 
   async assignToUser(
@@ -40,7 +47,7 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
     // Validates role exists and belongs to tenant (or system)
     const role = await this.roleService.findOneForTenant(dto.role_id, tenantId);
 
-    const existing = await this.userRoleRepository.findOne({
+    const existing = await this.repository.findOne({
       where: { user_id: userId, role_id: dto.role_id, tenant_id: tenantId },
     });
 
@@ -48,10 +55,10 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
 
     if (existing) {
       existing.expires_at = dto.expires_at || null;
-      assignment = await this.userRoleRepository.save(existing);
+      assignment = await this.repository.save(existing);
     } else {
-      assignment = await this.userRoleRepository.save(
-        this.userRoleRepository.create({
+      assignment = await this.repository.save(
+        this.repository.create({
           tenant_id: tenantId,
           user_id: userId,
           role_id: dto.role_id,
@@ -60,7 +67,7 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
       );
     }
 
-    this.eventProducer.emit('iam.audit', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.ROLE_ASSIGNED,
       tenant_id: tenantId,
       actor_id: actorId,
@@ -69,7 +76,7 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
       payload: { role_id: dto.role_id, expires_at: dto.expires_at },
     });
 
-    this.eventProducer.emit('iam.permission.changed', {
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_PERMISSION_CHANGED, {
       event_type: 'PERMISSION_CHANGED',
       tenant_id: tenantId,
       user_id: userId,
@@ -84,14 +91,14 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
     tenantId: string,
     actorId: string,
   ): Promise<void> {
-    const assignment = await this.userRoleRepository.findOne({
+    const assignment = await this.repository.findOne({
       where: { user_id: userId, role_id: roleId, tenant_id: tenantId },
     });
 
     if (assignment) {
-      await this.userRoleRepository.remove(assignment);
+      await this.repository.remove(assignment);
 
-      this.eventProducer.emit('iam.audit', {
+      this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
         event_type: AuditEventType.ROLE_REVOKED,
         tenant_id: tenantId,
         actor_id: actorId,
@@ -100,7 +107,7 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
         payload: { role_id: roleId },
       });
 
-      this.eventProducer.emit('iam.permission.changed', {
+      this.eventProducer.emit(KAFKA_TOPICS.IAM_PERMISSION_CHANGED, {
         event_type: 'PERMISSION_CHANGED',
         tenant_id: tenantId,
         user_id: userId,
@@ -115,7 +122,7 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
     const now = new Date();
 
     // We want all roles that have NO expiry, or expiry > now
-    const qb = this.userRoleRepository
+    const qb = this.repository
       .createQueryBuilder('ur')
       .leftJoinAndSelect('ur.role', 'role')
       .where('ur.user_id = :userId', { userId })

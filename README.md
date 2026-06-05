@@ -78,11 +78,10 @@ Once the server is running, you can access the Swagger UI containing the compreh
 **[http://localhost:3000/api/docs](http://localhost:3000/api/docs)**
 
 ## IAM SDK (`@iam/nestjs-sdk`)
-A self-contained NestJS SDK is available under `packages/iam-sdk/`. This SDK includes Guards (`@UseGuards(PermissionGuard)`), Decorators (`@RequirePermissions('expense:read')`), and the `IamClientService` to facilitate integrating IAM checks seamlessly into other microservices.
+A self-contained NestJS SDK is available under `packages/iam-sdk/`. This SDK includes an `IamAuthzService` and acts as a thin read-only client for permissions checking via Redis cache and IAM HTTP fallbacks.
 
-Build the SDK:
+The repository uses npm workspaces. To build and link the SDK for local development in other microservices:
 ```bash
-cd packages/iam-sdk
-npm install
-npm run build
+npm run build --workspace=@iam/nestjs-sdk
+cd packages/iam-sdk && npm link
 ```

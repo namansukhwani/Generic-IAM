@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { PermissionService } from './permission.service';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentUser  } from '@iam/nestjs-sdk';
 
 @Controller()
 @UseGuards(AuthGuard('jwt'))

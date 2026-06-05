@@ -6,7 +6,7 @@ import {
   MicroserviceHealthIndicator,
 } from '@nestjs/terminus';
 import { RedisOptions, Transport } from '@nestjs/microservices';
-import { Public } from '../common/decorators/public.decorator';
+import { Public  } from '@iam/nestjs-sdk';
 import { ConfigService } from '@nestjs/config';
 
 @Controller('health')

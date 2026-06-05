@@ -1,3 +1,4 @@
+import { KAFKA_TOPICS } from '../common/constants/kafka.constant';
 import { Controller } from '@nestjs/common';
 import {
   EventPattern,
@@ -11,7 +12,7 @@ import { CacheService } from '../cache/cache.service';
 export class EventConsumer {
   constructor(private readonly cacheService: CacheService) {}
 
-  @EventPattern('iam.permission.changed')
+  @EventPattern(KAFKA_TOPICS.IAM_PERMISSION_CHANGED)
   async handlePermissionChanged(
     @Payload() message: any,
     @Ctx() context: KafkaContext,
