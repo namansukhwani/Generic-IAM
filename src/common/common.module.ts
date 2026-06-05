@@ -2,8 +2,6 @@ import { Module, Global } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard, IdentityTypeGuard } from '@iam/nestjs-sdk';
-import { IamPermissionGuard } from './guards/iam-permission.guard';
-import { IamAclGuard } from './guards/iam-acl.guard';
 import { CorrelationIdInterceptor } from './interceptors/correlation-id.interceptor';
 import { ResponseTransformInterceptor } from './interceptors/response-transform.interceptor';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
@@ -32,14 +30,6 @@ import { TenantModule } from '../modules/tenant/tenant.module';
       useClass: IdentityTypeGuard,
     },
     {
-      provide: APP_GUARD,
-      useClass: IamPermissionGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: IamAclGuard,
-    },
-    {
       provide: APP_INTERCEPTOR,
       useClass: CorrelationIdInterceptor,
     },
@@ -56,6 +46,6 @@ import { TenantModule } from '../modules/tenant/tenant.module';
       useClass: GlobalExceptionFilter,
     },
   ],
-  exports: [], // The APP_* providers automatically register globally
+  exports: [AuthorizationModule], // The APP_* providers automatically register globally
 })
 export class CommonModule {}

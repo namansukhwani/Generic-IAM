@@ -2,6 +2,9 @@
 
 A robust, multi-tenant Identity and Access Management (IAM) service built with NestJS, designed using Clean Architecture principles. It handles authentication, Role-Based Access Control (RBAC), fine-grained Access Control Lists (ACL), and comprehensive audit logging.
 
+### Frontend Repository
+The corresponding Frontend repository is available at: [Generic-IAM-FE](https://github.com/namansukhwani/Generic-IAM-FE)
+
 ## Architecture Summary
 - **Framework**: NestJS (TypeScript)
 - **Database**: PostgreSQL (Row-Level Security for strict tenant isolation)

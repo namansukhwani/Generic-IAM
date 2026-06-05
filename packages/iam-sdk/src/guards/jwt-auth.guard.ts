@@ -5,6 +5,7 @@ import {
   ExecutionContext,
   UnauthorizedException,
   Inject,
+  Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
@@ -12,6 +13,8 @@ import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  private readonly logger = new Logger(JwtAuthGuard.name);
+
   constructor(
     private reflector: Reflector,
     @Inject('JWT_SECRET') private readonly jwtSecret: string,
@@ -23,6 +26,7 @@ export class JwtAuthGuard implements CanActivate {
       context.getClass(),
     ]);
     if (isPublic) {
+      this.logger.log('JWTAuth | Public route');
       return true;
     }
 
@@ -44,8 +48,10 @@ export class JwtAuthGuard implements CanActivate {
       }
 
       request.user = payload;
+      this.logger.log('JWTAuth | Valid token');
       return true;
     } catch (e) {
+      this.logger.log('JWTAuth | Invalid token', e);
       throw new UnauthorizedException('Invalid token');
     }
   }

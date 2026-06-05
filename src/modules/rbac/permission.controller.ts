@@ -2,14 +2,15 @@ import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { Controller, Get, Patch, Body, Param, UseGuards } from '@nestjs/common';
 import { PermissionService } from './permission.service';
 import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto';
-import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '@iam/nestjs-sdk';
 
 import { RequirePermissions } from '@iam/nestjs-sdk';
 import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.constant';
+import { IamAclGuard } from '../../common/guards/iam-acl.guard';
+import { IamPermissionGuard } from '../../common/guards/iam-permission.guard';
 
 @Controller()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(IamPermissionGuard, IamAclGuard)
 export class PermissionController {
   constructor(private readonly permissionService: PermissionService) {}
 

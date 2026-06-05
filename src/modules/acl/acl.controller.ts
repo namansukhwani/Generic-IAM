@@ -15,12 +15,13 @@ import { AclService } from './acl.service';
 import { CreateAclDto } from './dto/create-acl.dto';
 import { CheckAclDto } from './dto/check-acl.dto';
 import { AclQueryDto } from './dto/acl-query.dto';
-import { AuthGuard } from '@nestjs/passport';
 import { RequirePermissions, CurrentUser } from '@iam/nestjs-sdk';
 import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.constant';
+import { IamAclGuard } from '../../common/guards/iam-acl.guard';
+import { IamPermissionGuard } from '../../common/guards/iam-permission.guard';
 
 @Controller('acl')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(IamPermissionGuard, IamAclGuard)
 export class AclController {
   constructor(private readonly aclService: AclService) {}
 

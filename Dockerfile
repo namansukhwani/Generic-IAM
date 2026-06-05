@@ -11,18 +11,18 @@ RUN npm ci --legacy-peer-deps
 COPY . .
 RUN npm run build
 
-# ──────────────────────────────────────────────
-# Stage 2 — Development: hot-reload watch mode
-# ──────────────────────────────────────────────
-FROM node:20-alpine AS development
-WORKDIR /usr/src/app
+# # ──────────────────────────────────────────────
+# # Stage 2 — Development: hot-reload watch mode
+# # ──────────────────────────────────────────────
+# FROM node:20-alpine AS development
+# WORKDIR /usr/src/app
 
-COPY package*.json ./
-COPY packages/iam-sdk/ packages/iam-sdk/
-RUN npm ci --legacy-peer-deps
+# COPY package*.json ./
+# COPY packages/iam-sdk/ packages/iam-sdk/
+# RUN npm ci --legacy-peer-deps
 
-COPY . .
-CMD ["npm", "run", "start:dev"]
+# COPY . .
+# CMD ["npm", "run", "start:dev"]
 
 # ──────────────────────────────────────────────
 # Stage 3 — Runner

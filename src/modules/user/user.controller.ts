@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { UserService } from './user.service';
@@ -23,9 +24,12 @@ import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 
 import { AuthorizationService } from '../authorization/authorization.service';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { IamAclGuard } from '../../common/guards/iam-acl.guard';
+import { IamPermissionGuard } from '../../common/guards/iam-permission.guard';
 
 @ApiTags('Users')
 @ApiBearerAuth()
+@UseGuards(IamPermissionGuard, IamAclGuard)
 @Controller('users')
 export class UserController {
   constructor(

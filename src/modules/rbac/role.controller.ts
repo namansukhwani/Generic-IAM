@@ -11,12 +11,13 @@ import {
 } from '@nestjs/common';
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
-import { AuthGuard } from '@nestjs/passport';
 import { RequirePermissions, CurrentUser } from '@iam/nestjs-sdk';
 import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.constant';
+import { IamPermissionGuard } from '../../common/guards/iam-permission.guard';
+import { IamAclGuard } from '../../common/guards/iam-acl.guard';
 
 @Controller('roles')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(IamPermissionGuard, IamAclGuard)
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 

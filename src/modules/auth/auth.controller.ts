@@ -4,14 +4,12 @@ import {
   Post,
   Body,
   Get,
-  UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser, Public } from '@iam/nestjs-sdk';
 
 @Controller('auth')
@@ -34,13 +32,11 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(AuthGuard('jwt'))
   async logout(@CurrentUser() user: JwtPayload) {
     await this.authService.logout(user.sub, user.tenant_id as string);
   }
 
   @Get('me')
-  @UseGuards(AuthGuard('jwt'))
   async getMe(@CurrentUser() user: JwtPayload) {
     return this.authService.getMe(user.sub);
   }

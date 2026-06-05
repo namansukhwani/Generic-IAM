@@ -33,6 +33,7 @@ import { AppModule } from '../src/app.module';
 import { JwtService } from '@nestjs/jwt';
 import { DataSource } from 'typeorm';
 import { IdentityType } from '../src/common/constants/identity-types.constant';
+import { SuperAdminEntity } from '../src/modules/super-admin/entities/super-admin.entity';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -84,6 +85,8 @@ describe('IAM Service — Full E2E Suite', () => {
 
   // ── auth tokens ────────────────────────────────────────────────────────────
   let saToken: string; // SuperAdmin (minted via JwtService)
+  let superAdminId: string;
+  let superAdminEmail: string;
   let tokenA: string; // Tenant A admin (real JWT from /auth/login)
   let tokenB: string; // Tenant B admin
   let memberToken: string; // Regular MEMBER in Tenant A
@@ -149,10 +152,20 @@ describe('IAM Service — Full E2E Suite', () => {
     jwt = app.get(JwtService);
     db = app.get(DataSource);
 
+    // Fetch seeded SuperAdmin
+    const seededSa = await db
+      .getRepository(SuperAdminEntity)
+      .findOne({ where: {} });
+    if (!seededSa) {
+      throw new Error('No seeded SuperAdmin found in database');
+    }
+    superAdminId = seededSa.id;
+    superAdminEmail = seededSa.email;
+
     // SuperAdmin token (bypasses real login; JwtService uses the same secret)
     saToken = jwt.sign({
-      sub: '11111111-1111-1111-1111-111111111111',
-      email: 'sa@e2e.test',
+      sub: superAdminId,
+      email: superAdminEmail,
       identity_type: IdentityType.SUPER_ADMIN,
     });
 
@@ -356,7 +369,7 @@ describe('IAM Service — Full E2E Suite', () => {
     });
 
     describe('GET /auth/me', () => {
-      it('returns current user profile with tenant_id', async () => {
+      it('returns current user profile with tenant_id and identity_type USER', async () => {
         const res = await request(app.getHttpServer())
           .get(P('/auth/me'))
           .set('Authorization', `Bearer ${tokenA}`)
@@ -365,6 +378,18 @@ describe('IAM Service — Full E2E Suite', () => {
         expect(d(res).id).toBe(adminUserAId);
         expect(d(res).email).toBe(adminEmailA);
         expect(d(res).tenant_id).toBe(tenantAId);
+        expect(d(res).identity_type).toBe('USER');
+      });
+
+      it('returns current super admin profile with identity_type SUPER_ADMIN', async () => {
+        const res = await request(app.getHttpServer())
+          .get(P('/auth/me'))
+          .set('Authorization', `Bearer ${saToken}`)
+          .expect(200);
+
+        expect(d(res).id).toBe(superAdminId);
+        expect(d(res).email).toBe(superAdminEmail);
+        expect(d(res).identity_type).toBe('SUPER_ADMIN');
       });
 
       it('returns 401 without Authorization header', () =>

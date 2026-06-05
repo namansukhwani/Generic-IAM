@@ -111,7 +111,9 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token format');
     }
 
-    const hashedTokens = await this.refreshTokenRepository.find({ where: { user_id: userIdPrefix } });
+    const hashedTokens = await this.refreshTokenRepository.find({
+      where: { user_id: userIdPrefix },
+    });
     let validToken: RefreshTokenEntity | undefined;
     let userId: string = '';
 
@@ -217,8 +219,6 @@ export class AuthService {
     };
 
     const accessTtl = this.configService.get<number>('jwt.accessTtl') || 900;
-    const refreshTtl =
-      this.configService.get<number>('jwt.refreshTtl') || 604800;
 
     const access_token = this.jwtService.sign(payload, {
       expiresIn: accessTtl,
@@ -253,7 +253,10 @@ export class AuthService {
     });
 
     if (user) {
-      return user;
+      return {
+        ...user,
+        identity_type: 'USER',
+      };
     }
 
     // Check if it's a SuperAdmin
@@ -278,6 +281,7 @@ export class AuthService {
       last_name: 'Admin',
       tenant_id: null,
       manager_id: null,
+      identity_type: 'SUPER_ADMIN',
     };
   }
 }

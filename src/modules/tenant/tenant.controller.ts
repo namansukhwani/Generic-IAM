@@ -8,6 +8,7 @@ import {
   Delete,
   ParseUUIDPipe,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { TenantService } from './tenant.service';
@@ -23,9 +24,12 @@ import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { AuditService } from '../audit/audit.service';
 import { AuditQueryDto } from '../audit/dto/audit-query.dto';
 import { ForbiddenException } from '@nestjs/common';
+import { IamAclGuard } from '../../common/guards/iam-acl.guard';
+import { IamPermissionGuard } from '../../common/guards/iam-permission.guard';
 
 @ApiTags('Tenants')
 @ApiBearerAuth()
+@UseGuards(IamPermissionGuard, IamAclGuard)
 @Controller('tenants')
 export class TenantController {
   constructor(

@@ -3,48 +3,30 @@ import {
   ExecutionContext,
   ForbiddenException,
   Logger,
+  CanActivate,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import {
-  AclGuard,
-  ACL_KEY,
-  AclMetadata,
-  IdentityType,
-  IamAuthzService,
-} from '@iam/nestjs-sdk';
+import { ACL_KEY, AclMetadata, IdentityType } from '@iam/nestjs-sdk';
 import { AuthorizationService } from '../../modules/authorization/authorization.service';
 import { RequestContext } from '../interfaces/request-context.interface';
 
 @Injectable()
-export class IamAclGuard extends AclGuard {
-  protected readonly logger = new Logger(IamAclGuard.name);
+export class IamAclGuard implements CanActivate {
+  private readonly logger = new Logger(IamAclGuard.name);
 
   constructor(
-    protected reflector: Reflector,
+    private readonly reflector: Reflector,
     private readonly authorizationService: AuthorizationService,
-  ) {
-    super(reflector, null as unknown as IamAuthzService);
-  }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const reflector = this.reflector || (this as any).reflector;
-    if (!reflector) {
-      return true;
-    }
-    const isPublic = reflector.getAllAndOverride<boolean>('isPublic', [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    if (isPublic) {
-      return true;
-    }
-
-    const aclMeta = reflector.getAllAndOverride<AclMetadata>(ACL_KEY, [
+    const aclMeta = this.reflector.getAllAndOverride<AclMetadata>(ACL_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
     if (!aclMeta) {
+      this.logger.log('ACL Metadata Not Found');
       return true;
     }
 
@@ -56,11 +38,13 @@ export class IamAclGuard extends AclGuard {
     }
 
     if (user.identity_type === (IdentityType.SUPER_ADMIN as string)) {
+      this.logger.log('Super Admin | route permission');
       return true;
     }
 
     const resourceId = request.params[aclMeta.paramKey || 'id'];
     if (!resourceId) {
+      this.logger.log('Resource ID not found in request');
       throw new ForbiddenException('Resource ID not found in request');
     }
 
@@ -74,11 +58,14 @@ export class IamAclGuard extends AclGuard {
 
     if (!result.allowed) {
       this.logger.warn(
-        `DENIED | user_id=${user.sub} tenant_id=${user.tenant_id} resource_type=${aclMeta.resource} resource_id=${resourceId} permission=${aclMeta.action}`,
+        `DENIED | user_id=${String(user.sub)} tenant_id=${String(user.tenant_id)} resource_type=${String(aclMeta.resource)} resource_id=${String(resourceId)} permission=${String(aclMeta.action)}`,
       );
       throw new ForbiddenException('Insufficient resource ACL');
     }
 
+    this.logger.log(
+      `ALLOWED | user_id=${String(user.sub)} tenant_id=${String(user.tenant_id)} resource_type=${String(aclMeta.resource)} resource_id=${String(resourceId)} permission=${String(aclMeta.action)}`,
+    );
     return true;
   }
 }

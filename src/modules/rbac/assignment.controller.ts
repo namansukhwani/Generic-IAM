@@ -16,10 +16,11 @@ import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import { CreateOverrideDto } from './dto/create-override.dto';
 import { RequirePermissions, CurrentUser } from '@iam/nestjs-sdk';
 import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.constant';
-import { AuthGuard } from '@nestjs/passport';
+import { IamAclGuard } from '../../common/guards/iam-acl.guard';
+import { IamPermissionGuard } from '../../common/guards/iam-permission.guard';
 
 @Controller('users/:userId')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(IamPermissionGuard, IamAclGuard)
 export class AssignmentController {
   constructor(
     private readonly assignmentService: AssignmentService,
@@ -102,7 +103,6 @@ export class AssignmentController {
   }
 
   @Get('effective-permissions')
-  @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.READ)
   async getEffectivePermissions(
     @Param('userId') targetUserId: string,
     @CurrentUser() user: JwtPayload,

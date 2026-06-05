@@ -3,49 +3,44 @@ import {
   ExecutionContext,
   ForbiddenException,
   Logger,
+  CanActivate,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import {
-  PermissionGuard,
-  PERMISSIONS_KEY,
-  IdentityType,
-  IamAuthzService,
-} from '@iam/nestjs-sdk';
+import { PERMISSIONS_KEY, IdentityType } from '@iam/nestjs-sdk';
 import { AuthorizationService } from '../../modules/authorization/authorization.service';
 import { RequestContext } from '../interfaces/request-context.interface';
 
 @Injectable()
-export class IamPermissionGuard extends PermissionGuard {
-  protected readonly logger = new Logger(IamPermissionGuard.name);
+export class IamPermissionGuard implements CanActivate {
+  private readonly logger = new Logger(IamPermissionGuard.name);
 
   constructor(
-    protected reflector: Reflector,
+    private readonly reflector: Reflector,
     private readonly authorizationService: AuthorizationService,
-  ) {
-    super(reflector, null as unknown as IamAuthzService);
-  }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    if (!this.reflector) {
-      return true;
-    }
     const isPublic = this.reflector.getAllAndOverride<boolean>('isPublic', [
       context.getHandler(),
       context.getClass(),
     ]);
     if (isPublic) {
+      this.logger.log('PermissionGuard | Route is public');
       return true;
     }
 
+    this.logger.log('Checking permissions');
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
+    );
+    this.logger.log(
+      `Required permissions: ${JSON.stringify(requiredPermissions)}`,
     );
 
     if (!requiredPermissions || requiredPermissions.length === 0) {
       return true;
     }
-
     const request = context.switchToHttp().getRequest<RequestContext>();
     const user = request.user;
 
@@ -54,6 +49,7 @@ export class IamPermissionGuard extends PermissionGuard {
     }
 
     if (user.identity_type === (IdentityType.SUPER_ADMIN as string)) {
+      this.logger.log('PermissionGuard | Super admin');
       return true;
     }
 
@@ -78,6 +74,10 @@ export class IamPermissionGuard extends PermissionGuard {
       );
       throw new ForbiddenException('Insufficient permissions');
     }
+
+    this.logger.log(
+      `ALLOWED | user_id=${userId} tenant_id=${tenantId} required=[${requiredPermissions.join(',')}]`,
+    );
 
     return true;
   }
