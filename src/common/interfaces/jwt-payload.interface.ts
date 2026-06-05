@@ -4,4 +4,5 @@ export interface JwtPayload {
   identity_type: string;
   service_name?: string;
   impersonator_id?: string;
+  email?: string;
 }

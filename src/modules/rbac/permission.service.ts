@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-  Inject,
-  Scope,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, Scope } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -45,65 +39,73 @@ export class PermissionService extends BaseService<PermissionEntity> {
     const role = await this.roleService.findOneForTenant(roleId, tenantId);
 
     if (role.is_system) {
-      throw new BadRequestException('Cannot modify permissions of system roles');
+      throw new BadRequestException(
+        'Cannot modify permissions of system roles',
+      );
     }
 
     const manager = this.repository.manager;
     if (dto.add && dto.add.length > 0) {
-        const permissions = await manager.find(PermissionEntity, {
-          where: dto.add.map((id) => {
-            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-            return isUuid ? { id } : { code: id };
-          }),
+      const permissions = await manager.find(PermissionEntity, {
+        where: dto.add.map((id) => {
+          const isUuid =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+              id,
+            );
+          return isUuid ? { id } : { code: id };
+        }),
+      });
+      for (const permission of permissions) {
+        const existing = await manager.findOne(RolePermissionEntity, {
+          where: { role_id: roleId, permission_id: permission.id },
         });
-        for (const permission of permissions) {
-          const existing = await manager.findOne(RolePermissionEntity, {
-            where: { role_id: roleId, permission_id: permission.id },
+        if (!existing) {
+          const mapping = manager.create(RolePermissionEntity, {
+            role_id: roleId,
+            permission_id: permission.id,
           });
-          if (!existing) {
-            const mapping = manager.create(RolePermissionEntity, {
-              role_id: roleId,
-              permission_id: permission.id,
-            });
-            await manager.save(mapping);
+          await manager.save(mapping);
 
-            this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
-              event_type: AuditEventType.PERMISSION_ADDED_TO_ROLE,
-              tenant_id: tenantId,
-              actor_id: actorId,
-              resource_type: 'role',
-              resource_id: roleId,
-              payload: { permission_id: permission.id },
-            });
-          }
+          this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
+            event_type: AuditEventType.PERMISSION_ADDED_TO_ROLE,
+            tenant_id: tenantId,
+            actor_id: actorId,
+            resource_type: 'role',
+            resource_id: roleId,
+            payload: { permission_id: permission.id },
+          });
         }
       }
+    }
 
-      if (dto.remove && dto.remove.length > 0) {
-        const permissions = await manager.find(PermissionEntity, {
-          where: dto.remove.map((id) => {
-            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-            return isUuid ? { id } : { code: id };
-          }),
+    if (dto.remove && dto.remove.length > 0) {
+      const permissions = await manager.find(PermissionEntity, {
+        where: dto.remove.map((id) => {
+          const isUuid =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+              id,
+            );
+          return isUuid ? { id } : { code: id };
+        }),
+      });
+      for (const permission of permissions) {
+        const mapping = await manager.findOne(RolePermissionEntity, {
+          where: { role_id: roleId, permission_id: permission.id },
         });
-        for (const permission of permissions) {
-          const mapping = await manager.findOne(RolePermissionEntity, {
-            where: { role_id: roleId, permission_id: permission.id },
-          });
-          if (mapping) {
-            await manager.remove(mapping);
+        if (mapping) {
+          await manager.remove(mapping);
 
-            this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
-              event_type: AuditEventType.PERMISSION_REMOVED_FROM_ROLE,
-              tenant_id: tenantId,
-              actor_id: actorId,
-              resource_type: 'role',
-              resource_id: roleId,
-              payload: { permission_id: permission.id },
-            });
-          }
+          this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
+            event_type: AuditEventType.PERMISSION_REMOVED_FROM_ROLE,
+            tenant_id: tenantId,
+            actor_id: actorId,
+            resource_type: 'role',
+            resource_id: roleId,
+            payload: { permission_id: permission.id },
+          });
         }
       }
+    }
 
     this.eventProducer.emit(KAFKA_TOPICS.IAM_PERMISSION_CHANGED, {
       event_type: 'PERMISSION_CHANGED',

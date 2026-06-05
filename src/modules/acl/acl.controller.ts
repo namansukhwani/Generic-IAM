@@ -16,7 +16,7 @@ import { CreateAclDto } from './dto/create-acl.dto';
 import { CheckAclDto } from './dto/check-acl.dto';
 import { AclQueryDto } from './dto/acl-query.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser  } from '@iam/nestjs-sdk';
+import { CurrentUser } from '@iam/nestjs-sdk';
 
 @Controller('acl')
 @UseGuards(AuthGuard('jwt'))
@@ -25,17 +25,17 @@ export class AclController {
 
   @Post()
   async createAcl(@Body() dto: CreateAclDto, @CurrentUser() user: JwtPayload) {
-    return this.aclService.createAcl((user.tenant_id as string), dto, user.sub);
+    return this.aclService.createAcl(user.tenant_id as string, dto, user.sub);
   }
 
   @Get()
   async getAcls(@Query() query: AclQueryDto, @CurrentUser() user: JwtPayload) {
-    return this.aclService.findAllAcls((user.tenant_id as string), query);
+    return this.aclService.findAllAcls(user.tenant_id as string, query);
   }
 
   @Delete(':id')
   async deleteAcl(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
-    await this.aclService.deleteAcl(id, (user.tenant_id as string), user.sub);
+    await this.aclService.deleteAcl(id, user.tenant_id as string, user.sub);
     return { success: true };
   }
 
@@ -45,6 +45,6 @@ export class AclController {
     // Note: the plan mentions "Service identity only (dual-header)".
     // A separate guard for service identity would be used here in a real scenario.
     // For now we assume the JWT guard passes and tenantId is present.
-    return this.aclService.check((user.tenant_id as string), dto);
+    return this.aclService.check(user.tenant_id as string, dto);
   }
 }

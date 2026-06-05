@@ -12,7 +12,7 @@ import {
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser  } from '@iam/nestjs-sdk';
+import { CurrentUser } from '@iam/nestjs-sdk';
 
 @Controller('roles')
 @UseGuards(AuthGuard('jwt'))
@@ -21,20 +21,27 @@ export class RoleController {
 
   @Post()
   // @RequireTenantAdmin() -> To be implemented fully in Phase 6 with RBAC guard, but assuming logic allows it or manually checked
-  async createRole(@Body() dto: CreateRoleDto, @CurrentUser() user: JwtPayload) {
+  async createRole(
+    @Body() dto: CreateRoleDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
     // Requires Tenant_Admin logic will be handled by a global RBAC guard later,
     // but we have user.identityType or similar if we want.
-    return this.roleService.createCustomRole((user.tenant_id as string), dto, user.sub);
+    return this.roleService.createCustomRole(
+      user.tenant_id as string,
+      dto,
+      user.sub,
+    );
   }
 
   @Get()
   async getRoles(@CurrentUser() user: JwtPayload) {
-    return this.roleService.findAllForTenant((user.tenant_id as string));
+    return this.roleService.findAllForTenant(user.tenant_id as string);
   }
 
   @Get(':id')
   async getRole(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
-    return this.roleService.findOneForTenant(id, (user.tenant_id as string));
+    return this.roleService.findOneForTenant(id, user.tenant_id as string);
   }
 
   @Patch(':id')
@@ -45,7 +52,7 @@ export class RoleController {
   ) {
     return this.roleService.updateCustomRole(
       id,
-      (user.tenant_id as string),
+      user.tenant_id as string,
       dto,
       user.sub,
     );
@@ -53,7 +60,11 @@ export class RoleController {
 
   @Delete(':id')
   async deleteRole(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
-    await this.roleService.deleteCustomRole(id, (user.tenant_id as string), user.sub);
+    await this.roleService.deleteCustomRole(
+      id,
+      user.tenant_id as string,
+      user.sub,
+    );
     return { success: true };
   }
 }

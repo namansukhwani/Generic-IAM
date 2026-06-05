@@ -6,9 +6,21 @@ import { AuditQueryDto } from './dto/audit-query.dto';
 import { Subject, Subscription } from 'rxjs';
 import { bufferTime, filter } from 'rxjs/operators';
 
+export class AuditEventPayload {
+  event_type: string;
+  tenant_id?: string;
+  actor_id?: string;
+  user_id?: string;
+  resource_type?: string;
+  resource_id?: string;
+  correlation_id?: string;
+  payload?: Record<string, any>;
+  changes?: any;
+}
+
 @Injectable()
 export class AuditService implements OnModuleInit, OnModuleDestroy {
-  private eventSubject = new Subject<any>();
+  private eventSubject = new Subject<AuditEventPayload>();
   private subscription: Subscription;
 
   constructor(
@@ -23,7 +35,7 @@ export class AuditService implements OnModuleInit, OnModuleDestroy {
         filter((batch) => batch.length > 0),
       )
       .subscribe((batch) => {
-        this.flushBatch(batch);
+        void this.flushBatch(batch);
       });
   }
 
@@ -63,10 +75,15 @@ export class AuditService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async queryLogs(query: AuditQueryDto): Promise<{ data: AuditLogEntity[]; total: number; page: number; limit: number }> {
+  async queryLogs(query: AuditQueryDto): Promise<{
+    data: AuditLogEntity[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const page = query.page || 1;
     const limit = query.limit || 100;
-    
+
     const qb = this.auditRepository
       .createQueryBuilder('audit')
       .orderBy('audit.created_at', 'DESC')

@@ -1,4 +1,11 @@
-import { Entity, Column, Unique, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  Unique,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
 import { BaseEntity } from '../../../common/base/base.entity';
 
 @Entity('permissions')

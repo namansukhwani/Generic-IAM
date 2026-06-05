@@ -8,7 +8,10 @@ export class UpdateRolePermissionsDto {
   @IsUUID('4', { each: true })
   add?: string[];
 
-  @ApiPropertyOptional({ type: [String], description: 'Permission IDs to remove' })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Permission IDs to remove',
+  })
   @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true })

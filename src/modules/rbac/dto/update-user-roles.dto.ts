@@ -1,4 +1,10 @@
-import { IsArray, IsOptional, IsUUID, ValidateNested, IsDateString } from 'class-validator';
+import {
+  IsArray,
+  IsOptional,
+  IsUUID,
+  ValidateNested,
+  IsDateString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -12,7 +18,10 @@ export class AssignRoleItemDto {
 }
 
 export class UpdateUserRolesDto {
-  @ApiPropertyOptional({ type: [AssignRoleItemDto], description: 'Roles to assign' })
+  @ApiPropertyOptional({
+    type: [AssignRoleItemDto],
+    description: 'Roles to assign',
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

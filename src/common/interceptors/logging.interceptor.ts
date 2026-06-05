@@ -24,7 +24,7 @@ export class LoggingInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap({
-        next: (_data) => {
+        next: () => {
           this.log('INFO', context, request, response, startTime);
         },
         error: (error) => {

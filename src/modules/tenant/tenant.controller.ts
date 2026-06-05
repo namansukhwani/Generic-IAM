@@ -13,11 +13,11 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { TenantService } from './tenant.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
-import { IdentityTypes  } from '@iam/nestjs-sdk';
+import { IdentityTypes } from '@iam/nestjs-sdk';
 import { IdentityType } from '../../common/constants/identity-types.constant';
-import { RequirePermissions  } from '@iam/nestjs-sdk';
+import { RequirePermissions } from '@iam/nestjs-sdk';
 import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.constant';
-import { CurrentUser  } from '@iam/nestjs-sdk';
+import { CurrentUser } from '@iam/nestjs-sdk';
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 
 import { AuditService } from '../audit/audit.service';
@@ -94,8 +94,13 @@ export class TenantController {
     @Query() query: AuditQueryDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    if (user.identity_type !== IdentityType.SUPER_ADMIN && user.tenant_id !== id) {
-      throw new ForbiddenException('Cannot access audit logs of another tenant');
+    if (
+      user.identity_type !== (IdentityType.SUPER_ADMIN as string) &&
+      user.tenant_id !== id
+    ) {
+      throw new ForbiddenException(
+        'Cannot access audit logs of another tenant',
+      );
     }
 
     query.tenant_id = id;

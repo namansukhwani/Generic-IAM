@@ -30,7 +30,7 @@ describe('runInTransaction Utility', () => {
     const dummyResult = { success: true };
     const work = jest.fn().mockResolvedValue(dummyResult);
 
-    const result = await runInTransaction(mockDataSource, work);
+    const result = await runInTransaction(mockDataSource as DataSource, work);
 
     expect(result).toBe(dummyResult);
     expect(mockDataSource.createQueryRunner).toHaveBeenCalledTimes(1);
@@ -46,9 +46,9 @@ describe('runInTransaction Utility', () => {
     const workError = new Error('Database write error');
     const work = jest.fn().mockRejectedValue(workError);
 
-    await expect(runInTransaction(mockDataSource, work)).rejects.toThrow(
-      'Database write error',
-    );
+    await expect(
+      runInTransaction(mockDataSource as DataSource, work),
+    ).rejects.toThrow('Database write error');
 
     expect(mockDataSource.createQueryRunner).toHaveBeenCalledTimes(1);
     expect(mockQueryRunner.connect).toHaveBeenCalledTimes(1);
@@ -62,7 +62,7 @@ describe('runInTransaction Utility', () => {
   it('should pass isolation level if provided', async () => {
     const work = jest.fn().mockResolvedValue('ok');
 
-    await runInTransaction(mockDataSource, work, 'SERIALIZABLE');
+    await runInTransaction(mockDataSource as DataSource, work, 'SERIALIZABLE');
 
     expect(mockQueryRunner.startTransaction).toHaveBeenCalledWith(
       'SERIALIZABLE',

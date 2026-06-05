@@ -8,6 +8,16 @@ export class CacheService {
 
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
+  async get<T>(key: string): Promise<T | undefined> {
+    return this.cacheManager.get<T>(key);
+  }
+
+  async set(key: string, value: any, ttlSeconds?: number): Promise<void> {
+    // cache-manager set can take TTL in milliseconds
+    const ttl = ttlSeconds !== undefined ? ttlSeconds * 1000 : undefined;
+    await this.cacheManager.set(key, value, ttl);
+  }
+
   async getPermissions(
     tenantId: string,
     userId: string,

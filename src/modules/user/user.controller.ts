@@ -5,7 +5,6 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
   ParseUUIDPipe,
   Query,
 } from '@nestjs/common';
@@ -15,11 +14,11 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UserResponseDto } from './dto/user-response.dto';
-import { IdentityTypes  } from '@iam/nestjs-sdk';
+import { IdentityTypes } from '@iam/nestjs-sdk';
 import { IdentityType } from '../../common/constants/identity-types.constant';
-import { RequirePermissions  } from '@iam/nestjs-sdk';
+import { RequirePermissions } from '@iam/nestjs-sdk';
 import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.constant';
-import { CurrentUser  } from '@iam/nestjs-sdk';
+import { CurrentUser } from '@iam/nestjs-sdk';
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 
 import { AuthorizationService } from '../authorization/authorization.service';

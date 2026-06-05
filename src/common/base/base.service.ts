@@ -18,7 +18,9 @@ export class BaseService<T extends ObjectLiteral> {
 
   protected get repository(): Repository<T> {
     if (this.request?.entityManager) {
-      return this.request.entityManager.getRepository(this.defaultRepository.target);
+      return this.request.entityManager.getRepository(
+        this.defaultRepository.target,
+      );
     }
     return this.defaultRepository;
   }

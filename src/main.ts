@@ -75,4 +75,4 @@ async function bootstrap() {
   await app.listen(port);
   logger.log(`IAM Service is running on: http://localhost:${port}/api/v1`);
 }
-bootstrap();
+void bootstrap();

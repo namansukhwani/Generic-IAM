@@ -11,11 +11,11 @@ import {
 } from '@nestjs/common';
 import { AssignmentService } from './assignment.service';
 import { OverrideService } from './override.service';
-import { AssignRoleDto } from './dto/assign-role.dto';
+
 import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import { CreateOverrideDto } from './dto/create-override.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser  } from '@iam/nestjs-sdk';
+import { CurrentUser } from '@iam/nestjs-sdk';
 
 @Controller('users/:userId')
 @UseGuards(AuthGuard('jwt'))
@@ -47,7 +47,10 @@ export class AssignmentController {
     @Param('userId') targetUserId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.assignmentService.getUserRoles(targetUserId, (user.tenant_id as string));
+    return this.assignmentService.getUserRoles(
+      targetUserId,
+      user.tenant_id as string,
+    );
   }
 
   // Overrides
@@ -60,7 +63,7 @@ export class AssignmentController {
   ) {
     return this.overrideService.addOverride(
       targetUserId,
-      (user.tenant_id as string),
+      user.tenant_id as string,
       dto,
       user.sub,
     );
@@ -73,7 +76,7 @@ export class AssignmentController {
   ) {
     return this.overrideService.getOverridesForUser(
       targetUserId,
-      (user.tenant_id as string),
+      user.tenant_id as string,
     );
   }
 
@@ -86,7 +89,7 @@ export class AssignmentController {
     await this.overrideService.removeOverride(
       overrideId,
       targetUserId,
-      (user.tenant_id as string),
+      user.tenant_id as string,
       user.sub,
     );
     return { success: true };
@@ -99,7 +102,7 @@ export class AssignmentController {
   ) {
     return this.overrideService.getEffectivePermissions(
       targetUserId,
-      (user.tenant_id as string),
+      user.tenant_id as string,
     );
   }
 }

@@ -4,7 +4,13 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AclGuard, ACL_KEY, AclMetadata, IdentityType } from '@iam/nestjs-sdk';
+import {
+  AclGuard,
+  ACL_KEY,
+  AclMetadata,
+  IdentityType,
+  IamAuthzService,
+} from '@iam/nestjs-sdk';
 import { AuthorizationService } from '../../modules/authorization/authorization.service';
 import { RequestContext } from '../interfaces/request-context.interface';
 
@@ -14,7 +20,7 @@ export class IamAclGuard extends AclGuard {
     protected reflector: Reflector,
     private readonly authorizationService: AuthorizationService,
   ) {
-    super(reflector);
+    super(reflector, null as unknown as IamAuthzService);
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -34,7 +40,7 @@ export class IamAclGuard extends AclGuard {
       throw new ForbiddenException('Authentication required');
     }
 
-    if (user.identity_type === IdentityType.SUPER_ADMIN) {
+    if (user.identity_type === (IdentityType.SUPER_ADMIN as string)) {
       return true;
     }
 

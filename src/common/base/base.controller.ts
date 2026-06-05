@@ -1,6 +1,6 @@
 import { Get, Post, Patch, Delete, Param, Body, Query } from '@nestjs/common';
 import { BaseService } from './base.service';
-import type { DeepPartial } from 'typeorm';
+import type { DeepPartial, FindOneOptions } from 'typeorm';
 import { ObjectLiteral } from 'typeorm';
 
 export class BaseController<T extends ObjectLiteral> {
@@ -16,7 +16,9 @@ export class BaseController<T extends ObjectLiteral> {
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    return this.baseService.findOne({ where: { id } } as any);
+    return this.baseService.findOne({
+      where: { id },
+    } as unknown as FindOneOptions<T>);
   }
 
   @Post()

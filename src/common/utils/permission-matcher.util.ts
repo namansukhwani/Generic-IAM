@@ -18,7 +18,7 @@ export function hasPermission(
   if (effectivePermissions.has(required)) return true;
   if (effectivePermissions.has('*:*')) return true;
 
-  const [resource, action] = required.split(':');
+  const [resource] = required.split(':');
   if (effectivePermissions.has(`${resource}:*`)) return true;
 
   return false;

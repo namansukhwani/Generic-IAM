@@ -19,7 +19,7 @@ export class TenantContextMiddleware implements NestMiddleware {
         ).toString();
         const payload = JSON.parse(payloadStr);
         tenantId = payload.tenant_id;
-      } catch (e) {
+      } catch {
         // Ignore parsing errors here
       }
     }

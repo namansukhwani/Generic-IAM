@@ -473,13 +473,13 @@ graph TD
 
 ## Validation
 
-- [ ] `npx tsc --noEmit --project tsconfig.json` — zero errors
-- [ ] `npx eslint src/ --fix` — zero warnings
-- [ ] All existing tests pass: `npm run test`
-- [ ] Grep `TODO` returns zero results in `src/` and `packages/`
-- [ ] Grep `: any` returns zero results (except test files)
-- [ ] Manual test: SDK `npm link` in separate NestJS project, verify guards work
-- [ ] Manual test: Create 2 tenants, verify RLS isolation
+- [x] `npx tsc --noEmit --project tsconfig.json` — zero errors
+- [x] `npx eslint src/ --fix` — zero warnings
+- [x] All existing tests pass: `npm run test`
+- [x] Grep `TODO` returns zero results in `src/` and `packages/`
+- [x] Grep `: any` returns zero results (except test files)
+- [x] Manual test: SDK `npm link` in separate NestJS project, verify guards work
+- [x] Manual test: Create 2 tenants, verify RLS isolation
 - [ ] Manual test: Assign `expense.departments.*` permission, verify access to sub-permissions
 
 ---

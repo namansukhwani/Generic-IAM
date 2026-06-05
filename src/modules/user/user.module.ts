@@ -7,7 +7,11 @@ import { RbacModule } from '../rbac/rbac.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserEntity]), RbacModule, AuthorizationModule],
+  imports: [
+    TypeOrmModule.forFeature([UserEntity]),
+    RbacModule,
+    AuthorizationModule,
+  ],
   controllers: [UserController],
   providers: [UserService],
   exports: [UserService],

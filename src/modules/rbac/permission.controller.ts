@@ -1,17 +1,9 @@
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Body,
-  Param,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Patch, Body, Param, UseGuards } from '@nestjs/common';
 import { PermissionService } from './permission.service';
 import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser  } from '@iam/nestjs-sdk';
+import { CurrentUser } from '@iam/nestjs-sdk';
 
 @Controller()
 @UseGuards(AuthGuard('jwt'))

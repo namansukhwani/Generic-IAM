@@ -1,9 +1,4 @@
-import {
-  PipeTransform,
-  Injectable,
-  ArgumentMetadata,
-  BadRequestException,
-} from '@nestjs/common';
+import { PipeTransform, Injectable, BadRequestException } from '@nestjs/common';
 import { TenantService } from '../../modules/tenant/tenant.service';
 import { CacheService } from '../../cache/cache.service';
 
@@ -14,7 +9,7 @@ export class TenantValidationPipe implements PipeTransform {
     private readonly cacheService: CacheService,
   ) {}
 
-  public async transform(value: Record<string, unknown> | any, _metadata: ArgumentMetadata) {
+  public async transform(value: any) {
     if (!value || typeof value !== 'object') {
       return value;
     }
@@ -26,12 +21,14 @@ export class TenantValidationPipe implements PipeTransform {
 
       if (!isCached) {
         try {
-          const tenant = await this.tenantService.findOne({ where: { id: tenantId } });
+          const tenant = await this.tenantService.findOne({
+            where: { id: tenantId },
+          });
           if (!tenant || !tenant.is_active) {
             throw new BadRequestException('Invalid or inactive tenant');
           }
           await this.cacheService.set(cacheKey, 'true', 600); // 10 min TTL
-        } catch (error) {
+        } catch {
           throw new BadRequestException('Invalid or inactive tenant');
         }
       }

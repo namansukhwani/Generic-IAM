@@ -49,9 +49,11 @@ export class TenantTransactionInterceptor implements NestInterceptor {
                 request.entityManager = queryRunner.manager;
 
                 return next.handle().pipe(
-                  tap(async () => {
+                  tap(() => {
                     if (queryRunner.isTransactionActive) {
-                      await queryRunner.commitTransaction();
+                      queryRunner.commitTransaction().catch((err) => {
+                        console.error('Failed to commit transaction', err);
+                      });
                     }
                   }),
                   catchError(async (err) => {
@@ -60,9 +62,11 @@ export class TenantTransactionInterceptor implements NestInterceptor {
                     }
                     throw err;
                   }),
-                  finalize(async () => {
+                  finalize(() => {
                     if (!queryRunner.isReleased) {
-                      await queryRunner.release();
+                      queryRunner.release().catch((err) => {
+                        console.error('Failed to release query runner', err);
+                      });
                     }
                   }),
                 );

@@ -75,7 +75,10 @@ export class RoleService extends BaseService<RoleEntity> {
     return role;
   }
 
-  async findOneByName(name: string, tenantId: string | null): Promise<RoleEntity | null> {
+  async findOneByName(
+    name: string,
+    tenantId: string | null,
+  ): Promise<RoleEntity | null> {
     return this.repository.findOne({
       where: { name, tenant_id: tenantId === null ? IsNull() : tenantId },
     });
@@ -124,7 +127,9 @@ export class RoleService extends BaseService<RoleEntity> {
     });
 
     if (assignedUsersCount > 0) {
-      throw new ConflictException('Cannot delete role as it is assigned to users');
+      throw new ConflictException(
+        'Cannot delete role as it is assigned to users',
+      );
     }
 
     await this.repository.remove(role);
