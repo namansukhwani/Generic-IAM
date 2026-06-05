@@ -83,6 +83,7 @@ export class TenantService extends BaseService<TenantEntity> {
 
         return { savedTenant, savedUser };
       },
+      { existingManager: this.request?.entityManager },
     );
 
     // Emit Events

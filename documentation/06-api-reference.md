@@ -128,13 +128,7 @@
 ### `POST /auth/logout`
 
 **Headers:** `Authorization: Bearer <access_token>`  
-**Response 200:**
-```json
-{
-  "success": true,
-  "data": { "message": "Logged out successfully" }
-}
-```
+**Response 204:** No content
 
 ### `GET /auth/me`
 
@@ -177,8 +171,12 @@
     "max_users": 1000,
     "features": ["expense", "payroll"]
   },
-  "admin_email": "admin@acme.com",
-  "admin_password": "initialPassword123"
+  "admin": {
+    "email": "admin@acme.com",
+    "password": "initialPassword123",
+    "first_name": "Admin",
+    "last_name": "User"
+  }
 }
 ```
 
@@ -223,8 +221,7 @@
 | `GET` | `/users` | List users in current tenant | Tenant_Admin |
 | `GET` | `/users/:id` | Get user details | Tenant_Admin / Self |
 | `PATCH` | `/users/:id` | Update user | Tenant_Admin / Self (limited) |
-| `PATCH` | `/users/:id/activate` | Activate user | Tenant_Admin |
-| `PATCH` | `/users/:id/deactivate` | Deactivate user | Tenant_Admin |
+| `PATCH` | `/users/:id/status` | Update user status (activate/deactivate) | Tenant_Admin |
 | `GET` | `/users/:id/hierarchy` | Get user's reporting chain | Tenant_Admin |
 
 ### `POST /users`
@@ -287,11 +284,9 @@
 | `GET` | `/roles/:id` | Get role with permissions | Tenant_Admin |
 | `PATCH` | `/roles/:id` | Update custom role | Tenant_Admin |
 | `DELETE` | `/roles/:id` | Delete custom role | Tenant_Admin |
-| `PATCH` | `/roles/:id/permissions` | Batch assign permissions to role | Tenant_Admin |
-| `DELETE` | `/roles/:id/permissions/:permissionId` | Remove permission from role | Tenant_Admin |
 | `GET` | `/permissions` | List all available permissions | Tenant_Admin |
-| `POST` | `/users/:id/roles` | Assign role to user | Tenant_Admin |
-| `DELETE` | `/users/:id/roles/:roleId` | Remove role from user | Tenant_Admin |
+| `PATCH` | `/roles/:id/permissions` | Batch add/remove permissions from role | Tenant_Admin |
+| `PATCH` | `/users/:id/roles` | Batch assign/remove roles for user | Tenant_Admin |
 | `GET` | `/users/:id/roles` | List user's roles | Tenant_Admin / Self |
 | `GET` | `/users/:id/effective-permissions` | Get computed effective permissions | Tenant_Admin / Self |
 | `POST` | `/users/:id/permission-overrides` | Add GRANT/DENY override | Tenant_Admin |
@@ -304,12 +299,7 @@
 ```json
 {
   "name": "Custom_Finance_Role",
-  "description": "Custom role for finance team",
-  "permissions": [
-    "expense:read",
-    "invoice:read",
-    "report:read"
-  ]
+  "description": "Custom role for finance team"
 }
 ```
 
@@ -320,29 +310,66 @@
   "data": {
     "id": "role-uuid",
     "name": "Custom_Finance_Role",
+    "description": "Custom role for finance team",
     "is_system": false,
     "tenant_id": "tenant-uuid",
-    "permissions": [...]
+    "created_at": "2026-06-04T16:00:00Z"
   }
 }
 ```
 
 ### `PATCH /roles/:id/permissions`
 
-**Request (batch assign):**
+**Request (batch add/remove):**
 ```json
 {
-  "permission_ids": ["perm-uuid-1", "perm-uuid-2", "perm-uuid-3"]
+  "add": ["perm-uuid-1", "perm-uuid-2"],
+  "remove": ["perm-uuid-3"]
 }
 ```
 
-### `POST /users/:id/roles`
-
-**Request:**
+**Response 200:**
 ```json
 {
-  "role_id": "role-uuid",
-  "expires_at": "2026-12-31T23:59:59Z"
+  "success": true
+}
+```
+
+### `GET /permissions`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "perm-uuid-1",
+      "code": "expense:read",
+      "description": "Read expense records",
+      "is_system": true,
+      "created_at": "2026-06-04T16:00:00Z"
+    }
+  ]
+}
+```
+
+### `PATCH /users/:id/roles`
+
+**Request (batch assign/remove):**
+```json
+{
+  "add": [
+    { "role_id": "role-uuid-1", "expires_at": "2026-12-31T23:59:59Z" },
+    { "role_id": "role-uuid-2" }
+  ],
+  "remove": ["role-uuid-3"]
+}
+```
+
+**Response 200:**
+```json
+{
+  "success": true
 }
 ```
 
@@ -607,125 +634,474 @@
 
 ## 10. cURL Examples
 
-### Login
+> Paste the **Setup** block once in your terminal, then run any command individually. Sections below mirror the document order — every endpoint in the API tables has a corresponding curl. Replace tokens with real values from `/auth/login` when testing against a live server.
+
+### Setup (run once)
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@acme.com", "password": "password123"}'
+BASE="http://localhost:3000/api/v1"
+HEALTH="http://localhost:3000/api/health"
+
+# Tokens
+SA_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJlbWFpbCI6InN1cGVyYWRtaW5AaWFtLmludGVybmFsIiwicm9sZSI6IlNVUEVSX0FETUlOIiwiaWF0IjoxNzQ5MDUyODAwfQ.xK9mP2vL8nQrT5sW1uYzBcDeFgHiJkLmNoPqRsTuV"
+TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YmE3YjgxMC05ZGFkLTExZDEtODBiNC0wMGMwNGZkNDMwYzgiLCJlbWFpbCI6ImFkbWluQGFjbWUuY29tIiwicm9sZSI6IlRFTkFOVF9BRE1JTiIsInRlbmFudElkIjoiZjQ3YWMxMGItNThjYy00MzcyLWE1NjctMGUwMmIyYzNkNDc5IiwiaWF0IjoxNzQ5MDUyODAwfQ.mR4nK7pX2wVt6qL9sA1bCdEfGhIjKlMnOpQrStUvW"
+
+# UUIDs — match seeded data or values returned by prior API calls
+TENANT_ID="f47ac10b-58cc-4372-a567-0e02b2c3d479"
+ADMIN_USER_ID="550e8400-e29b-41d4-a716-446655440000"
+JANE_USER_ID="6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+FINANCE_ROLE_ID="d4e5f6a7-b8c9-0123-defa-234567890123"
+VIEWER_ROLE_ID="a7b8c9d0-e1f2-3456-abcd-567890123456"
+PERM_EXPENSE_READ="e5f6a7b8-c9d0-1234-efab-345678901234"
+PERM_EXPENSE_WRITE="f6a7b8c9-d0e1-2345-fabc-456789012345"
+PERM_EXPENSE_DELETE="a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+EXPENSE_ID="b8c9d0e1-f2a3-4567-bcde-678901234567"
+ACL_ID="d0e1f2a3-b4c5-6789-defa-890123456789"
+OVERRIDE_ID="c9d0e1f2-a3b4-5678-cdef-789012345678"
+REFRESH_TOKEN="dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4gZm9yIHRlc3RpbmcgcHVycG9zZXMgb25seQ"
 ```
 
-### Create a Tenant (SuperAdmin)
+---
+
+### 2. Authentication APIs
+
+#### POST /auth/login
 
 ```bash
-SA_TOKEN="<superadmin-access-token>"
+curl -X POST $BASE/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@acme.com",
+    "password": "Admin@acme123"
+  }'
+```
 
-curl -X POST http://localhost:3000/api/v1/tenants \
+#### POST /auth/refresh
+
+```bash
+curl -X POST $BASE/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d "{\"refresh_token\": \"$REFRESH_TOKEN\"}"
+```
+
+#### POST /auth/logout
+
+```bash
+curl -X POST $BASE/auth/logout \
+  -H "Authorization: Bearer $TOKEN"
+# Response: 204 No Content
+```
+
+#### GET /auth/me
+
+```bash
+curl $BASE/auth/me \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+### 3. Tenant APIs
+
+#### POST /tenants
+
+```bash
+curl -X POST $BASE/tenants \
   -H "Authorization: Bearer $SA_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Acme Corporation",
     "slug": "acme-corp",
-    "admin_email": "admin@acme.com",
-    "admin_password": "admin123"
+    "settings": {
+      "max_users": 1000,
+      "features": ["expense", "payroll"]
+    },
+    "admin": {
+      "email": "admin@acme.com",
+      "password": "Admin@acme123",
+      "first_name": "Admin",
+      "last_name": "User"
+    }
   }'
 ```
 
-### Create a User (Tenant Admin)
+#### GET /tenants
 
 ```bash
-TOKEN="<tenant-admin-access-token>"
+curl $BASE/tenants \
+  -H "Authorization: Bearer $SA_TOKEN"
+```
 
-curl -X POST http://localhost:3000/api/v1/users \
+#### GET /tenants/:id
+
+```bash
+curl $BASE/tenants/$TENANT_ID \
+  -H "Authorization: Bearer $SA_TOKEN"
+```
+
+#### PATCH /tenants/:id
+
+```bash
+curl -X PATCH $BASE/tenants/$TENANT_ID \
+  -H "Authorization: Bearer $SA_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Acme Corporation (Updated)",
+    "settings": { "max_users": 2000 }
+  }'
+```
+
+#### DELETE /tenants/:id
+
+```bash
+curl -X DELETE $BASE/tenants/$TENANT_ID \
+  -H "Authorization: Bearer $SA_TOKEN"
+# Response: 204 No Content — tenant is soft-deactivated
+```
+
+---
+
+### 4. User Management APIs
+
+#### POST /users
+
+```bash
+curl -X POST $BASE/users \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "jane@acme.com",
-    "password": "securePass",
+    "email": "jane.doe@acme.com",
+    "password": "Jane@acme456",
     "first_name": "Jane",
-    "last_name": "Doe"
+    "last_name": "Doe",
+    "manager_id": "'$ADMIN_USER_ID'"
   }'
 ```
 
-### Assign a Role to a User
+#### GET /users
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/users/<user-id>/roles \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"role_id": "<role-id>", "expires_at": null}'
-```
-
-### Add a Permission Override (DENY)
-
-```bash
-curl -X POST http://localhost:3000/api/v1/users/<user-id>/permission-overrides \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"permission_id": "<perm-id>", "override_type": "DENY", "reason": "HR policy"}'
-```
-
-### Get Effective Permissions
-
-```bash
-curl http://localhost:3000/api/v1/users/<user-id>/effective-permissions \
+curl "$BASE/users?page=1&limit=20&search=jane" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-### Create a Resource ACL
+#### GET /users/:id
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/acl \
+curl $BASE/users/$JANE_USER_ID \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### PATCH /users/:id
+
+```bash
+curl -X PATCH $BASE/users/$JANE_USER_ID \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": "<user-id>",
+    "first_name": "Jane",
+    "last_name": "Smith",
+    "manager_id": "'$ADMIN_USER_ID'"
+  }'
+```
+
+#### PATCH /users/:id/status
+
+```bash
+curl -X PATCH $BASE/users/$JANE_USER_ID/status \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"is_active": false}'
+```
+
+#### GET /users/:id/hierarchy
+
+```bash
+curl $BASE/users/$JANE_USER_ID/hierarchy \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+### 5. RBAC APIs
+
+#### GET /permissions
+
+```bash
+curl $BASE/permissions \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### POST /roles
+
+```bash
+curl -X POST $BASE/roles \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Custom_Finance_Role",
+    "description": "Custom role for the finance team — read/write on expenses"
+  }'
+```
+
+#### GET /roles
+
+```bash
+curl $BASE/roles \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### GET /roles/:id
+
+```bash
+curl $BASE/roles/$FINANCE_ROLE_ID \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### PATCH /roles/:id
+
+```bash
+curl -X PATCH $BASE/roles/$FINANCE_ROLE_ID \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Custom_Finance_Role_V2",
+    "description": "Updated finance role with extended expense access"
+  }'
+```
+
+#### DELETE /roles/:id
+
+```bash
+curl -X DELETE $BASE/roles/$FINANCE_ROLE_ID \
+  -H "Authorization: Bearer $TOKEN"
+# Response: 204 No Content — only custom (non-system) roles can be deleted
+```
+
+#### PATCH /roles/:id/permissions
+
+```bash
+curl -X PATCH $BASE/roles/$FINANCE_ROLE_ID/permissions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "add": ["'$PERM_EXPENSE_READ'", "'$PERM_EXPENSE_WRITE'"],
+    "remove": ["'$PERM_EXPENSE_DELETE'"]
+  }'
+```
+
+#### PATCH /users/:id/roles
+
+```bash
+curl -X PATCH $BASE/users/$JANE_USER_ID/roles \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "add": [
+      { "role_id": "'$FINANCE_ROLE_ID'", "expires_at": "2026-12-31T23:59:59Z" },
+      { "role_id": "'$VIEWER_ROLE_ID'" }
+    ],
+    "remove": []
+  }'
+```
+
+#### GET /users/:id/roles
+
+```bash
+curl $BASE/users/$JANE_USER_ID/roles \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### GET /users/:id/effective-permissions
+
+```bash
+curl $BASE/users/$JANE_USER_ID/effective-permissions \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### POST /users/:id/permission-overrides (DENY)
+
+```bash
+curl -X POST $BASE/users/$JANE_USER_ID/permission-overrides \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "permission_id": "'$PERM_EXPENSE_DELETE'",
+    "override_type": "DENY",
+    "reason": "Restricted per HR policy — no expense deletion allowed"
+  }'
+```
+
+#### POST /users/:id/permission-overrides (GRANT)
+
+```bash
+curl -X POST $BASE/users/$JANE_USER_ID/permission-overrides \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "permission_id": "'$PERM_EXPENSE_WRITE'",
+    "override_type": "GRANT",
+    "reason": "Temporary access granted for Q2 audit review"
+  }'
+```
+
+#### GET /users/:id/permission-overrides
+
+```bash
+curl $BASE/users/$JANE_USER_ID/permission-overrides \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### DELETE /users/:id/permission-overrides/:overrideId
+
+```bash
+curl -X DELETE $BASE/users/$JANE_USER_ID/permission-overrides/$OVERRIDE_ID \
+  -H "Authorization: Bearer $TOKEN"
+# Response: 204 No Content
+```
+
+---
+
+### 6. ACL APIs
+
+#### POST /acl
+
+```bash
+curl -X POST $BASE/acl \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "'$JANE_USER_ID'",
     "resource_type": "expense",
-    "resource_id": "<expense-id>",
+    "resource_id": "'$EXPENSE_ID'",
     "permission": "approve"
   }'
 ```
 
-### Authorization Check (S2S)
+#### GET /acl
 
 ```bash
-# Forward the user JWT from the calling service
-curl -X POST http://localhost:3000/api/v1/authorization/check \
-  -H "Authorization: Bearer <user-jwt>" \
+curl "$BASE/acl?resource_type=expense&resource_id=$EXPENSE_ID" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### DELETE /acl/:id
+
+```bash
+curl -X DELETE $BASE/acl/$ACL_ID \
+  -H "Authorization: Bearer $TOKEN"
+# Response: 204 No Content
+```
+
+#### POST /acl/check
+
+```bash
+curl -X POST $BASE/acl/check \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": "<user-id>",
-    "tenant_id": "<tenant-id>",
-    "permission": "expense:write"
+    "user_id": "'$JANE_USER_ID'",
+    "tenant_id": "'$TENANT_ID'",
+    "resource_type": "expense",
+    "resource_id": "'$EXPENSE_ID'",
+    "permission": "approve"
   }'
 ```
 
-### Impersonate a User (SuperAdmin)
+---
+
+### 7. Authorization Check API (S2S)
+
+#### POST /authorization/check
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/super-admin/impersonate \
+curl -X POST $BASE/authorization/check \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "'$JANE_USER_ID'",
+    "tenant_id": "'$TENANT_ID'",
+    "permission": "expense:write",
+    "resource_type": "expense",
+    "resource_id": "'$EXPENSE_ID'"
+  }'
+```
+
+#### POST /authorization/check-batch
+
+```bash
+curl -X POST $BASE/authorization/check-batch \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "'$JANE_USER_ID'",
+    "tenant_id": "'$TENANT_ID'",
+    "checks": [
+      { "permission": "expense:read" },
+      { "permission": "expense:write" },
+      { "permission": "expense:approve", "resource_type": "expense", "resource_id": "'$EXPENSE_ID'" }
+    ]
+  }'
+```
+
+---
+
+### 8. SuperAdmin APIs
+
+#### GET /super-admin/tenants
+
+```bash
+curl "$BASE/super-admin/tenants?page=1&limit=20" \
+  -H "Authorization: Bearer $SA_TOKEN"
+```
+
+#### GET /super-admin/tenants/:id/users
+
+```bash
+curl "$BASE/super-admin/tenants/$TENANT_ID/users?page=1&limit=20" \
+  -H "Authorization: Bearer $SA_TOKEN"
+```
+
+#### GET /super-admin/audit-logs
+
+```bash
+curl "$BASE/super-admin/audit-logs?tenant_id=$TENANT_ID&action=AUTH_LOGIN_SUCCESS&from=2026-01-01&to=2026-12-31&page=1&limit=50" \
+  -H "Authorization: Bearer $SA_TOKEN"
+```
+
+#### POST /super-admin/impersonate
+
+```bash
+curl -X POST $BASE/super-admin/impersonate \
   -H "Authorization: Bearer $SA_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": "<target-user-id>",
-    "tenant_id": "<tenant-id>",
-    "reason": "Support ticket #12345"
+    "user_id": "'$JANE_USER_ID'",
+    "tenant_id": "'$TENANT_ID'",
+    "reason": "Support ticket #78901 — verifying expense approval flow"
   }'
 ```
 
-### Refresh Token
+---
+
+### 9. Health & Observability APIs
+
+#### GET /health
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{"refresh_token": "<refresh-token>"}'
+curl $HEALTH
 ```
 
-### Logout
+#### GET /health/ready
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/auth/logout \
-  -H "Authorization: Bearer $TOKEN"
+curl $HEALTH/ready
+```
+
+#### GET /health/live
+
+```bash
+curl $HEALTH/live
 ```
 
 ---

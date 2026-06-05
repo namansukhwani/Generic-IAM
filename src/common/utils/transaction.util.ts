@@ -1,21 +1,32 @@
 import { DataSource, EntityManager } from 'typeorm';
 
-/**
- * Execute operations within a transaction.
- * Automatically handles connection, transaction lifecycle (start, commit, rollback), and cleanup.
- */
-export async function runInTransaction<T>(
-  dataSource: DataSource,
-  operation: (manager: EntityManager) => Promise<T>,
+export interface RunInTransactionOptions {
   isolationLevel?:
     | 'READ UNCOMMITTED'
     | 'READ COMMITTED'
     | 'REPEATABLE READ'
-    | 'SERIALIZABLE',
+    | 'SERIALIZABLE';
+  /**
+   * When provided and already inside an active transaction (e.g. from
+   * TenantTransactionInterceptor), the operation joins that transaction
+   * instead of opening a new QueryRunner.  The caller owns commit/rollback.
+   */
+  existingManager?: EntityManager;
+}
+
+export async function runInTransaction<T>(
+  dataSource: DataSource,
+  operation: (manager: EntityManager) => Promise<T>,
+  options?: RunInTransactionOptions,
 ): Promise<T> {
+  const existing = options?.existingManager;
+  if (existing?.queryRunner?.isTransactionActive) {
+    return operation(existing);
+  }
+
   const queryRunner = dataSource.createQueryRunner();
   await queryRunner.connect();
-  await queryRunner.startTransaction(isolationLevel);
+  await queryRunner.startTransaction(options?.isolationLevel);
 
   try {
     const result = await operation(queryRunner.manager);

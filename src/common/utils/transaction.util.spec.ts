@@ -62,10 +62,46 @@ describe('runInTransaction Utility', () => {
   it('should pass isolation level if provided', async () => {
     const work = jest.fn().mockResolvedValue('ok');
 
-    await runInTransaction(mockDataSource as DataSource, work, 'SERIALIZABLE');
+    await runInTransaction(mockDataSource as DataSource, work, {
+      isolationLevel: 'SERIALIZABLE',
+    });
 
     expect(mockQueryRunner.startTransaction).toHaveBeenCalledWith(
       'SERIALIZABLE',
     );
+  });
+
+  it('should join an existing active transaction instead of creating a new QueryRunner', async () => {
+    const existingManager = {
+      queryRunner: { isTransactionActive: true },
+    } as any;
+    const work = jest.fn().mockResolvedValue('joined');
+
+    const result = await runInTransaction(
+      mockDataSource as DataSource,
+      work,
+      { existingManager },
+    );
+
+    expect(result).toBe('joined');
+    expect(work).toHaveBeenCalledWith(existingManager);
+    expect(mockDataSource.createQueryRunner).not.toHaveBeenCalled();
+  });
+
+  it('should fall back to a new QueryRunner when existingManager has no active transaction', async () => {
+    const existingManager = {
+      queryRunner: { isTransactionActive: false },
+    } as any;
+    const work = jest.fn().mockResolvedValue('new-runner');
+
+    const result = await runInTransaction(
+      mockDataSource as DataSource,
+      work,
+      { existingManager },
+    );
+
+    expect(result).toBe('new-runner');
+    expect(mockDataSource.createQueryRunner).toHaveBeenCalledTimes(1);
+    expect(mockQueryRunner.commitTransaction).toHaveBeenCalledTimes(1);
   });
 });
