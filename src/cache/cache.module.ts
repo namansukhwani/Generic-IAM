@@ -4,20 +4,33 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { redisStore } from 'cache-manager-redis-yet';
 import { CacheService } from './cache.service';
 
+function buildRedisUrl(config: ConfigService): string {
+  const pw = config.get<string>('redis.password');
+  const host = config.get<string>('redis.host');
+  const port = config.get<number>('redis.port');
+  const db = config.get<number>('redis.db');
+  return `redis://${pw ? `:${pw}@` : ''}${host}:${port}/${db}`;
+}
+
 @Global()
 @Module({
   imports: [
     NestCacheModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        store: await redisStore({
-          url: `redis://${configService.get<string>('redis.password') ? `:${configService.get<string>('redis.password')}@` : ''}${configService.get<string>('redis.host')}:${configService.get<number>('redis.port')}/${configService.get<number>('redis.db')}`,
-        }),
+        store: await redisStore({ url: buildRedisUrl(configService) }),
       }),
       inject: [ConfigService],
     }),
   ],
-  providers: [CacheService],
-  exports: [CacheService, NestCacheModule],
+  providers: [
+    CacheService,
+    {
+      provide: 'CACHE_REDIS_URL',
+      useFactory: (config: ConfigService) => buildRedisUrl(config),
+      inject: [ConfigService],
+    },
+  ],
+  exports: [CacheService, NestCacheModule, 'CACHE_REDIS_URL'],
 })
 export class CacheModule {}

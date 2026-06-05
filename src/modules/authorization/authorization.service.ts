@@ -6,11 +6,13 @@ import { AclService } from '../acl/acl.service';
 import { CheckAuthzDto } from './dto/check-authz.dto';
 import { EventProducer } from '../../event/event.producer';
 import { hasPermission } from '@iam/nestjs-sdk';
+import { CacheService } from '../../cache/cache.service';
 
 @Injectable()
 export class AuthorizationService {
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly cacheService: CacheService,
     private readonly overrideService: OverrideService,
     private readonly aclService: AclService,
     private readonly eventProducer: EventProducer,
@@ -23,26 +25,41 @@ export class AuthorizationService {
   async check(
     dto: CheckAuthzDto,
   ): Promise<{ allowed: boolean; source: string; evaluated_at: string }> {
-    const cacheKey = this.getCacheKey(dto);
-    const cached = await this.cacheManager.get<boolean>(cacheKey);
-
+    const authzKey = this.getCacheKey(dto);
     const now = new Date().toISOString();
 
-    if (cached !== undefined && cached !== null) {
-      return { allowed: cached, source: 'cache', evaluated_at: now };
+    // Fast path: individual authz decision already cached (read by SDK via ioredis too)
+    const cachedDecision = await this.cacheManager.get<boolean>(authzKey);
+    if (cachedDecision !== undefined && cachedDecision !== null) {
+      return { allowed: cachedDecision, source: 'cache', evaluated_at: now };
     }
 
-    // 1. Check RBAC
-    const effectivePermissions =
-      await this.overrideService.getEffectivePermissions(
-        dto.user_id,
+    // Medium path: full effective permission set is cached — check locally, no DB needed
+    let effectiveSet = await this.cacheService.getPermissions(
+      dto.tenant_id,
+      dto.user_id,
+    );
+
+    if (!effectiveSet) {
+      // DB path: compute effective permissions and populate the perms: cache so
+      // subsequent checks for this user (different permissions) skip the DB entirely
+      const effectivePermissions =
+        await this.overrideService.getEffectivePermissions(
+          dto.user_id,
+          dto.tenant_id,
+        );
+      effectiveSet = new Set(effectivePermissions.map((p) => p.code));
+      await this.cacheService.setPermissions(
         dto.tenant_id,
+        dto.user_id,
+        effectiveSet,
       );
-    const effectiveSet = new Set(effectivePermissions.map((p) => p.code));
+    }
+
     let allowed = hasPermission(effectiveSet, dto.permission);
     let source = 'rbac';
 
-    // 2. Check ACL if RBAC denied and resource is specified
+    // ACL check: only if RBAC denied and a specific resource is provided
     if (!allowed && dto.resource_type && dto.resource_id) {
       const aclResult = await this.aclService.check(dto.tenant_id, {
         user_id: dto.user_id,
@@ -54,8 +71,8 @@ export class AuthorizationService {
       source = 'acl';
     }
 
-    // Cache the result (5 minutes)
-    await this.cacheManager.set(cacheKey, allowed, 300000);
+    // Write the individual decision so the SDK can read it directly from Redis
+    await this.cacheManager.set(authzKey, allowed, 300000);
 
     return { allowed, source: allowed ? source : 'none', evaluated_at: now };
   }
@@ -65,7 +82,6 @@ export class AuthorizationService {
   ): Promise<
     Array<{ allowed: boolean; source: string; evaluated_at: string }>
   > {
-    const results = await Promise.all(dtos.map((dto) => this.check(dto)));
-    return results;
+    return Promise.all(dtos.map((dto) => this.check(dto)));
   }
 }

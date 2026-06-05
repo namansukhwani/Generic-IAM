@@ -13,7 +13,7 @@ import { IamAuthzService } from '../iam-authz.service';
 @Injectable()
 export class PermissionGuard implements CanActivate {
   constructor(
-    protected reflector: Reflector,
+    protected readonly reflector: Reflector,
     protected authzService: IamAuthzService,
   ) {}
 
@@ -34,7 +34,7 @@ export class PermissionGuard implements CanActivate {
       throw new ForbiddenException('Authentication required');
     }
 
-    if (user.identity_type === IdentityType.SUPER_ADMIN) {
+    if ((user.identity_type as IdentityType) === IdentityType.SUPER_ADMIN) {
       return true;
     }
 

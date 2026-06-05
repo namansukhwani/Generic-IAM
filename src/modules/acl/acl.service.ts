@@ -11,7 +11,7 @@ import { AclQueryDto } from './dto/acl-query.dto';
 import { EventProducer } from '../../event/event.producer';
 import { BaseService } from '../../common/base/base.service';
 import type { RequestContext } from '../../common/interfaces/request-context.interface';
-
+import { CacheService } from '../../cache/cache.service';
 import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
 
 @Injectable({ scope: Scope.REQUEST })
@@ -20,6 +20,7 @@ export class AclService extends BaseService<ResourceAclEntity> {
     @InjectRepository(ResourceAclEntity)
     protected readonly defaultRepository: Repository<ResourceAclEntity>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly cacheService: CacheService,
     private readonly eventProducer: EventProducer,
     @Inject(REQUEST) protected readonly request: RequestContext,
   ) {
@@ -65,7 +66,8 @@ export class AclService extends BaseService<ResourceAclEntity> {
 
     const saved = await this.repository.save(acl);
 
-    // Invalidate cache since permission is added
+    // Clear the acl: lookup cache and the authz: decision that AuthorizationService
+    // may have cached (allowed=false before this grant was created).
     const cacheKey = this.getCacheKey(
       tenantId,
       dto.user_id,
@@ -74,6 +76,13 @@ export class AclService extends BaseService<ResourceAclEntity> {
       dto.permission,
     );
     await this.cacheManager.del(cacheKey);
+    await this.cacheService.invalidateAuthzDecision(
+      tenantId,
+      dto.user_id,
+      dto.permission,
+      dto.resource_type,
+      dto.resource_id,
+    );
 
     this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: 'ACL_CREATED',
@@ -112,7 +121,8 @@ export class AclService extends BaseService<ResourceAclEntity> {
 
     await this.repository.remove(acl);
 
-    // Invalidate cache
+    // Clear the acl: lookup cache and the authz: decision that AuthorizationService
+    // may have cached (allowed=true before this grant was revoked).
     const cacheKey = this.getCacheKey(
       tenantId,
       acl.user_id,
@@ -121,6 +131,13 @@ export class AclService extends BaseService<ResourceAclEntity> {
       acl.permission,
     );
     await this.cacheManager.del(cacheKey);
+    await this.cacheService.invalidateAuthzDecision(
+      tenantId,
+      acl.user_id,
+      acl.permission,
+      acl.resource_type,
+      acl.resource_id,
+    );
 
     this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: 'ACL_DELETED',

@@ -59,7 +59,7 @@ export class UserController {
     @Query('limit') limit = 10,
   ) {
     const result = await this.userService.findPaginated(page, limit, {
-      where: { tenant_id: user.tenant_id || '' },
+      // where: { tenant_id: user.tenant_id || '' },
       order: { created_at: 'DESC' },
     });
     return {
@@ -110,7 +110,9 @@ export class UserController {
         permission: SYSTEM_PERMISSIONS.USER.WRITE,
       });
       if (!authz.allowed) {
-        throw new ForbiddenException('Insufficient permissions to update other users');
+        throw new ForbiddenException(
+          'Insufficient permissions to update other users',
+        );
       }
     }
     const updated = await this.userService.updateUser(
