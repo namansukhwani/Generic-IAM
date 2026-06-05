@@ -3,12 +3,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { UserEntity } from './entities/user.entity';
+import { RefreshTokenEntity } from '../auth/entities/refresh-token.entity';
 import { RbacModule } from '../rbac/rbac.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity]),
+    TypeOrmModule.forFeature([UserEntity, RefreshTokenEntity]),
     RbacModule,
     AuthorizationModule,
   ],

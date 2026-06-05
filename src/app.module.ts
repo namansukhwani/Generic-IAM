@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
@@ -29,6 +30,7 @@ import { HealthModule } from './health/health.module';
       isGlobal: true,
       load: [appConfig, databaseConfig, jwtConfig, redisConfig, kafkaConfig],
     }),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     CommonModule,
     CacheModule,

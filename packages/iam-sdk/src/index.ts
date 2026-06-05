@@ -7,6 +7,7 @@ export * from './guards/acl.guard';
 export * from './decorators/require-permissions.decorator';
 export * from './decorators/require-acl.decorator';
 export * from './decorators/current-user.decorator';
+export * from './decorators/allow-self.decorator';
 export * from './guards/identity-type.guard';
 export * from './decorators/identity-types.decorator';
 export * from './decorators/public.decorator';
@@ -15,4 +16,3 @@ export * from './constants/identity-types.constant';
 export * from './constants/kafka.constant';
 export * from './constants/system-permissions.constant';
 export * from './utils/permission-matcher.util';
-

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/require-permissions.decorator';
+import { ALLOW_SELF_KEY } from '../decorators/allow-self.decorator';
 import { RequestContext } from '../interfaces/request-context.interface';
 import { IdentityType } from '../constants/identity-types.constant';
 import { IamAuthzService } from '../iam-authz.service';
@@ -39,6 +40,21 @@ export class PermissionGuard implements CanActivate {
 
     if ((user.identity_type as IdentityType) === IdentityType.SUPER_ADMIN) {
       return true;
+    }
+
+    const selfParam = this.reflector.getAllAndOverride<string | undefined>(
+      ALLOW_SELF_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if (selfParam) {
+      const req = request as any;
+      const targetId = req.params?.[selfParam];
+      if (targetId && targetId === user.sub) {
+        this.logger.log(
+          `PermissionGuard | Self-access allowed | user_id=${user.sub} param=${selfParam}`,
+        );
+        return true;
+      }
     }
 
     for (const perm of requiredPermissions) {

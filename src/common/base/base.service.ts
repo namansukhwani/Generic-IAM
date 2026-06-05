@@ -56,16 +56,14 @@ export class BaseService<T extends ObjectLiteral> {
   }
 
   async update(id: string | number, dto: DeepPartial<T>): Promise<T> {
-    // Requires findOne options format compatible with the generic type
-    // We assume the entity has an 'id' field
-    const options = { where: { id } } as unknown as FindOneOptions<T>;
+    const options: FindOneOptions<T> = { where: { id } as any };
     const entity = await this.findOne(options);
     const updatedEntity = this.repository.merge(entity, dto);
     return this.repository.save(updatedEntity);
   }
 
   async remove(id: string | number): Promise<void> {
-    const options = { where: { id } } as unknown as FindOneOptions<T>;
+    const options: FindOneOptions<T> = { where: { id } as any };
     const entity = await this.findOne(options);
     await this.repository.remove(entity);
   }

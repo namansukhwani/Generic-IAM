@@ -306,7 +306,7 @@
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | `POST` | `/roles` | Create custom role | Tenant_Admin |
-| `GET` | `/roles` | List roles (system + custom) | Tenant_Admin |
+| `GET` | `/roles` | List roles (system + custom, paginated) | Tenant_Admin |
 | `GET` | `/roles/:id` | Get role with permissions | Tenant_Admin |
 | `PATCH` | `/roles/:id` | Update custom role | Tenant_Admin |
 | `DELETE` | `/roles/:id` | Delete custom role — returns 200 `{ success: true }` | Tenant_Admin |
@@ -318,6 +318,34 @@
 | `POST` | `/users/:id/permission-overrides` | Add GRANT/DENY override | Tenant_Admin |
 | `GET` | `/users/:id/permission-overrides` | List user's overrides | Tenant_Admin / Self |
 | `DELETE` | `/users/:id/permission-overrides/:overrideId` | Remove override | Tenant_Admin |
+
+### `GET /roles`
+
+**Query params:** `?page=1&limit=20`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "data": {
+    "data": [
+      {
+        "id": "role-uuid",
+        "tenant_id": null,
+        "name": "EXPENSE_MANAGER",
+        "description": "Expense manager role",
+        "is_system": true,
+        "created_at": "2026-06-04T16:00:00.000Z",
+        "updated_at": "2026-06-04T16:00:00.000Z"
+      }
+    ],
+    "total": 18,
+    "page": 1,
+    "limit": 20
+  },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
+}
+```
 
 ### `POST /roles`
 
@@ -542,9 +570,38 @@
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | `POST` | `/acl` | Create resource ACL | Tenant_Admin |
-| `GET` | `/acl` | List ACLs (filterable) | Tenant_Admin |
+| `GET` | `/acl` | List ACLs (filterable, paginated) | Tenant_Admin |
 | `DELETE` | `/acl/:id` | Delete ACL entry — returns 200 `{ success: true }` | Tenant_Admin |
 | `POST` | `/acl/check` | Check resource-level access | Internal / Service |
+
+### `GET /acl`
+
+**Query params:** `?user_id=<uuid>&resource_type=expense&resource_id=<uuid>&page=1&limit=20`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "data": {
+    "data": [
+      {
+        "id": "acl-uuid",
+        "tenant_id": "tenant-uuid",
+        "user_id": "user-uuid",
+        "resource_type": "expense",
+        "resource_id": "expense-uuid",
+        "permission": "approve",
+        "created_at": "2026-06-04T16:00:00.000Z",
+        "updated_at": "2026-06-04T16:00:00.000Z"
+      }
+    ],
+    "total": 5,
+    "page": 1,
+    "limit": 20
+  },
+  "meta": { "timestamp": "2026-06-04T16:00:00.000Z" }
+}
+```
 
 ### `POST /acl`
 
@@ -637,7 +694,7 @@
 
 ### `POST /authorization/check-batch`
 
-**Request:** Each item in `checks` is a full `CheckAuthzDto` — `user_id` and `tenant_id` are required per item.
+**Request:** Each item in `checks` is a full `CheckAuthzDto` — `user_id` and `tenant_id` are required per item. Maximum **100 items** per request.
 ```json
 {
   "checks": [
@@ -982,7 +1039,7 @@ curl -X POST $BASE/roles \
 #### GET /roles
 
 ```bash
-curl $BASE/roles \
+curl "$BASE/roles?page=1&limit=20" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -1116,7 +1173,7 @@ curl -X POST $BASE/acl \
 #### GET /acl
 
 ```bash
-curl "$BASE/acl?resource_type=expense&resource_id=$EXPENSE_ID" \
+curl "$BASE/acl?resource_type=expense&resource_id=$EXPENSE_ID&page=1&limit=20" \
   -H "Authorization: Bearer $TOKEN"
 ```
 

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { TenantEntity } from '../tenant/entities/tenant.entity';
 import { UserEntity } from '../user/entities/user.entity';
 import { ImpersonateDto } from './dto/impersonate.dto';
@@ -19,6 +20,7 @@ export class SuperAdminService {
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly eventProducer: EventProducer,
     private readonly auditService: AuditService,
   ) {}
@@ -45,7 +47,10 @@ export class SuperAdminService {
       impersonator_id: superAdminId,
     };
 
-    const accessTtl = 1800; // 30 mins
+    const accessTtl = this.configService.get<number>(
+      'jwt.impersonationTtl',
+      1800,
+    );
     const access_token = this.jwtService.sign(payload, {
       expiresIn: accessTtl,
     });

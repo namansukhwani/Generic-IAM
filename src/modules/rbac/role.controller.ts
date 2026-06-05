@@ -7,6 +7,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
@@ -39,8 +40,16 @@ export class RoleController {
 
   @Get()
   @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.READ)
-  async getRoles(@CurrentUser() user: JwtPayload) {
-    return this.roleService.findAllForTenant(user.tenant_id as string);
+  async getRoles(
+    @CurrentUser() user: JwtPayload,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.roleService.findAllForTenant(
+      user.tenant_id as string,
+      page ? parseInt(page, 10) : undefined,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Get(':id')

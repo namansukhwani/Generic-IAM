@@ -71,10 +71,23 @@ export class RoleService extends BaseService<RoleEntity> {
     return savedRole;
   }
 
-  async findAllForTenant(tenantId: string): Promise<RoleEntity[]> {
-    return this.repository.find({
+  async findAllForTenant(
+    tenantId: string,
+    page = 1,
+    limit = 20,
+  ): Promise<{
+    data: RoleEntity[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const [data, total] = await this.repository.findAndCount({
       where: [{ tenant_id: tenantId }, { is_system: true }],
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { created_at: 'DESC' },
     });
+    return { data, total, page, limit };
   }
 
   async findOneForTenant(id: string, tenantId: string): Promise<RoleEntity> {

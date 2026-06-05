@@ -3,6 +3,7 @@ import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { UserEntity } from './entities/user.entity';
+import { RefreshTokenEntity } from '../auth/entities/refresh-token.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { hashPassword } from '../../common/utils/password.util';
@@ -21,6 +22,8 @@ export class UserService extends BaseService<UserEntity> {
   constructor(
     @InjectRepository(UserEntity)
     protected readonly defaultRepository: Repository<UserEntity>,
+    @InjectRepository(RefreshTokenEntity)
+    private readonly refreshTokenRepository: Repository<RefreshTokenEntity>,
     private readonly dataSource: DataSource,
     private readonly eventProducer: EventProducer,
     private readonly roleService: RoleService,
@@ -124,6 +127,10 @@ export class UserService extends BaseService<UserEntity> {
 
     user.is_active = isActive;
     await this.repository.save(user);
+
+    if (!isActive) {
+      await this.refreshTokenRepository.delete({ user_id: id });
+    }
 
     const eventType = isActive
       ? AuditEventType.USER_ACTIVATED

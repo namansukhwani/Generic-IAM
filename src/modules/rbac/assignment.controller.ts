@@ -17,6 +17,7 @@ import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import { CreateOverrideDto } from './dto/create-override.dto';
 import { RequirePermissions, CurrentUser } from '@iam/nestjs-sdk';
 import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.constant';
+import { AllowSelf } from '../../common/decorators/allow-self.decorator';
 import { IamAclGuard } from '../../common/guards/iam-acl.guard';
 import { IamPermissionGuard } from '../../common/guards/iam-permission.guard';
 
@@ -48,6 +49,7 @@ export class AssignmentController {
 
   @Get('roles')
   @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.READ)
+  @AllowSelf('userId')
   async getUserRoles(
     @Param('userId', ParseUUIDPipe) targetUserId: string,
     @CurrentUser() user: JwtPayload,
@@ -77,6 +79,7 @@ export class AssignmentController {
 
   @Get('permission-overrides')
   @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.READ)
+  @AllowSelf('userId')
   async getOverrides(
     @Param('userId', ParseUUIDPipe) targetUserId: string,
     @CurrentUser() user: JwtPayload,
@@ -104,6 +107,8 @@ export class AssignmentController {
   }
 
   @Get('effective-permissions')
+  @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.READ)
+  @AllowSelf('userId')
   async getEffectivePermissions(
     @Param('userId', ParseUUIDPipe) targetUserId: string,
     @CurrentUser() user: JwtPayload,

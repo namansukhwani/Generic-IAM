@@ -7,6 +7,7 @@ export default registerAs('jwt', () => {
     accessTtl: parseInt(process.env.JWT_ACCESS_TTL || '900', 10),
     refreshTtl: parseInt(process.env.JWT_REFRESH_TTL || '604800', 10),
     serviceTtl: parseInt(process.env.JWT_SERVICE_TTL || '3600', 10),
+    impersonationTtl: parseInt(process.env.JWT_IMPERSONATION_TTL || '1800', 10),
   };
 
   const schema = Joi.object({
@@ -14,6 +15,7 @@ export default registerAs('jwt', () => {
     accessTtl: Joi.number().required(),
     refreshTtl: Joi.number().required(),
     serviceTtl: Joi.number().required(),
+    impersonationTtl: Joi.number().required(),
   });
 
   const { error, value } = schema.validate(values, { abortEarly: false });

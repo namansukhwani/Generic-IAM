@@ -1,6 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
+import { Injectable, Logger } from '@nestjs/common';
 import { OverrideService } from '../rbac/override.service';
 import { AclService } from '../acl/acl.service';
 import { CheckAuthzDto } from './dto/check-authz.dto';
@@ -13,7 +11,6 @@ export class AuthorizationService {
   private readonly logger = new Logger(AuthorizationService.name);
 
   constructor(
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly cacheService: CacheService,
     private readonly overrideService: OverrideService,
     private readonly aclService: AclService,
@@ -31,7 +28,7 @@ export class AuthorizationService {
     const now = new Date().toISOString();
 
     // Fast path: individual authz decision already cached (read by SDK via ioredis too)
-    const cachedDecision = await this.cacheManager.get<boolean>(authzKey);
+    const cachedDecision = await this.cacheService.get<boolean>(authzKey);
     if (cachedDecision !== undefined && cachedDecision !== null) {
       this.logger.log(
         `authz cache hit | permission=${dto.permission} user_id=${dto.user_id} result=${cachedDecision}`,
@@ -97,7 +94,7 @@ export class AuthorizationService {
     }
 
     // Write the individual decision so the SDK can read it directly from Redis
-    await this.cacheManager.set(authzKey, allowed, 300000);
+    await this.cacheService.set(authzKey, allowed, 300);
 
     return { allowed, source: allowed ? source : 'none', evaluated_at: now };
   }

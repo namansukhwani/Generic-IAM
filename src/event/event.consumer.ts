@@ -13,6 +13,12 @@ export interface PermissionChangedEvent {
   };
 }
 
+export interface UserChangedEvent {
+  tenant_id?: string;
+  user_id?: string;
+  event_type?: string;
+}
+
 export interface AclChangedEvent {
   tenant_id?: string;
   user_id?: string;
@@ -28,6 +34,24 @@ export class EventConsumer {
   private readonly logger = new Logger(EventConsumer.name);
 
   constructor(private readonly cacheService: CacheService) {}
+
+  @EventPattern(KAFKA_TOPICS.IAM_USER_CHANGED)
+  async handleUserChanged(@Payload() message: UserChangedEvent) {
+    const { tenant_id, user_id, event_type } = message;
+
+    if (!tenant_id || !user_id) {
+      this.logger.warn(
+        `user.changed missing required fields — skipping | tenant_id=${tenant_id} user_id=${user_id}`,
+      );
+      return;
+    }
+
+    this.logger.log(
+      `user.changed received | event_type=${event_type} tenant_id=${tenant_id} user_id=${user_id}`,
+    );
+
+    await this.cacheService.invalidateUserPermissionCache(tenant_id, user_id);
+  }
 
   @EventPattern(KAFKA_TOPICS.IAM_ACL_CHANGED)
   async handleAclChanged(@Payload() message: AclChangedEvent) {

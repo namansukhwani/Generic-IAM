@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsUUID, IsInt, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class AclQueryDto {
   @IsOptional()
@@ -12,4 +13,17 @@ export class AclQueryDto {
   @IsOptional()
   @IsString()
   resource_id?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
 }

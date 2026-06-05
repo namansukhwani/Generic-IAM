@@ -11,6 +11,7 @@ import { RoleService } from './role.service';
 import { PermissionService } from './permission.service';
 import { AssignmentService } from './assignment.service';
 import { OverrideService } from './override.service';
+import { RbacScheduler } from './rbac.scheduler';
 
 import { RoleController } from './role.controller';
 import { PermissionController } from './permission.controller';
@@ -36,6 +37,7 @@ import { EventModule } from '../../event/event.module';
     PermissionService,
     AssignmentService,
     OverrideService,
+    RbacScheduler,
   ],
   exports: [RoleService, PermissionService, AssignmentService, OverrideService],
 })

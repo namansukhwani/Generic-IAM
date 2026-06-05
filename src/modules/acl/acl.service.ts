@@ -8,13 +8,12 @@ import {
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
 import { ResourceAclEntity } from './entities/resource-acl.entity';
 import { CreateAclDto } from './dto/create-acl.dto';
 import { CheckAclDto } from './dto/check-acl.dto';
 import { AclQueryDto } from './dto/acl-query.dto';
 import { EventProducer } from '../../event/event.producer';
+import { CacheService } from '../../cache/cache.service';
 import { BaseService } from '../../common/base/base.service';
 import type { RequestContext } from '../../common/interfaces/request-context.interface';
 import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
@@ -26,7 +25,7 @@ export class AclService extends BaseService<ResourceAclEntity> {
   constructor(
     @InjectRepository(ResourceAclEntity)
     protected readonly defaultRepository: Repository<ResourceAclEntity>,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly cacheService: CacheService,
     private readonly eventProducer: EventProducer,
     @Inject(REQUEST) protected readonly request: RequestContext,
   ) {
@@ -78,10 +77,11 @@ export class AclService extends BaseService<ResourceAclEntity> {
       saved = await this.repository.save(acl);
     } catch (error: any) {
       if (error.code === '23503') {
-        if (error.constraint === 'FK_ded2945f980f33a458645c5a319') {
+        const detail: string = error.detail ?? '';
+        if (detail.includes('tenant_id')) {
           throw new NotFoundException(`Tenant with ID ${tenantId} not found`);
         }
-        if (error.constraint === 'FK_8a9c9d4f2f2a8792777f81f65f8') {
+        if (detail.includes('user_id')) {
           throw new NotFoundException(`User with ID ${dto.user_id} not found`);
         }
       }
@@ -112,14 +112,29 @@ export class AclService extends BaseService<ResourceAclEntity> {
   async findAllAcls(
     tenantId: string,
     query: AclQueryDto,
-  ): Promise<ResourceAclEntity[]> {
+  ): Promise<{
+    data: ResourceAclEntity[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const whereClause: any = { tenant_id: tenantId };
 
     if (query.user_id) whereClause.user_id = query.user_id;
     if (query.resource_type) whereClause.resource_type = query.resource_type;
     if (query.resource_id) whereClause.resource_id = query.resource_id;
 
-    return this.repository.find({ where: whereClause });
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+
+    const [data, total] = await this.repository.findAndCount({
+      where: whereClause,
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { created_at: 'DESC' },
+    });
+
+    return { data, total, page, limit };
   }
 
   async deleteAcl(
@@ -165,7 +180,7 @@ export class AclService extends BaseService<ResourceAclEntity> {
       dto.resource_id,
       dto.permission,
     );
-    const cached = await this.cacheManager.get<boolean>(cacheKey);
+    const cached = await this.cacheService.get<boolean>(cacheKey);
 
     if (cached !== undefined && cached !== null) {
       this.logger.log(
@@ -189,8 +204,7 @@ export class AclService extends BaseService<ResourceAclEntity> {
 
     const allowed = count > 0;
 
-    // Cache the result. TTL could be configured, using 300s (5 min) as default
-    await this.cacheManager.set(cacheKey, allowed, 300000); // cache-manager v5 expects ms
+    await this.cacheService.set(cacheKey, allowed, 300);
 
     return { allowed, source: 'db' };
   }

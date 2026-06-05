@@ -46,6 +46,8 @@ export class AuditService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy() {
+    // complete() causes bufferTime to emit any remaining buffered events before finishing
+    this.eventSubject.complete();
     if (this.subscription) {
       this.subscription.unsubscribe();
     }
