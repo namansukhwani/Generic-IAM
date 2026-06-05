@@ -3,11 +3,13 @@ import {
   Controller,
   Get,
   Post,
-  Delete,
+  Patch,
+  Body,
   Param,
   UseGuards,
 } from '@nestjs/common';
 import { PermissionService } from './permission.service';
+import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser  } from '@iam/nestjs-sdk';
 
@@ -21,30 +23,16 @@ export class PermissionController {
     return this.permissionService.findAllGlobal();
   }
 
-  @Post('roles/:roleId/permissions/:permissionId')
-  async assignPermissionToRole(
-    @Param('roleId') roleId: string,
-    @Param('permissionId') permissionId: string,
+  @Patch('roles/:id/permissions')
+  async updateRolePermissions(
+    @Param('id') roleId: string,
+    @Body() dto: UpdateRolePermissionsDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.permissionService.assignToRole(
+    await this.permissionService.updateRolePermissions(
       roleId,
-      (user.tenant_id as string),
-      permissionId,
-      user.sub,
-    );
-  }
-
-  @Delete('roles/:roleId/permissions/:permissionId')
-  async removePermissionFromRole(
-    @Param('roleId') roleId: string,
-    @Param('permissionId') permissionId: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    await this.permissionService.removeFromRole(
-      roleId,
-      (user.tenant_id as string),
-      permissionId,
+      user.tenant_id as string,
+      dto,
       user.sub,
     );
     return { success: true };

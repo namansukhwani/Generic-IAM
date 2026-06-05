@@ -16,6 +16,7 @@ import { AuditEventType } from '../../common/constants/audit-events.constant';
 import { BaseService } from '../../common/base/base.service';
 import type { RequestContext } from '../../common/interfaces/request-context.interface';
 import { KAFKA_TOPICS } from 'src/common/constants/kafka.constant';
+import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto';
 
 @Injectable({ scope: Scope.REQUEST })
 export class PermissionService extends BaseService<PermissionEntity> {
@@ -35,49 +36,74 @@ export class PermissionService extends BaseService<PermissionEntity> {
     return this.repository.find();
   }
 
-  async assignToRole(
+  async updateRolePermissions(
     roleId: string,
     tenantId: string,
-    permissionId: string,
+    dto: UpdateRolePermissionsDto,
     actorId: string,
-  ): Promise<RolePermissionEntity> {
+  ): Promise<void> {
     const role = await this.roleService.findOneForTenant(roleId, tenantId);
 
     if (role.is_system) {
-      throw new BadRequestException(
-        'Cannot modify permissions of system roles',
-      );
+      throw new BadRequestException('Cannot modify permissions of system roles');
     }
 
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(permissionId);
-    const permission = await this.repository.findOne({
-      where: isUuid ? { id: permissionId } : { code: permissionId },
-    });
-    if (!permission) throw new NotFoundException('Permission not found');
+    const manager = this.repository.manager;
+    if (dto.add && dto.add.length > 0) {
+        const permissions = await manager.find(PermissionEntity, {
+          where: dto.add.map((id) => {
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+            return isUuid ? { id } : { code: id };
+          }),
+        });
+        for (const permission of permissions) {
+          const existing = await manager.findOne(RolePermissionEntity, {
+            where: { role_id: roleId, permission_id: permission.id },
+          });
+          if (!existing) {
+            const mapping = manager.create(RolePermissionEntity, {
+              role_id: roleId,
+              permission_id: permission.id,
+            });
+            await manager.save(mapping);
 
-    const existing = await this.rolePermissionRepository.findOne({
-      where: { role_id: roleId, permission_id: permission.id },
-    });
+            this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
+              event_type: AuditEventType.PERMISSION_ADDED_TO_ROLE,
+              tenant_id: tenantId,
+              actor_id: actorId,
+              resource_type: 'role',
+              resource_id: roleId,
+              payload: { permission_id: permission.id },
+            });
+          }
+        }
+      }
 
-    if (existing) {
-      return existing; // Already assigned
-    }
+      if (dto.remove && dto.remove.length > 0) {
+        const permissions = await manager.find(PermissionEntity, {
+          where: dto.remove.map((id) => {
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+            return isUuid ? { id } : { code: id };
+          }),
+        });
+        for (const permission of permissions) {
+          const mapping = await manager.findOne(RolePermissionEntity, {
+            where: { role_id: roleId, permission_id: permission.id },
+          });
+          if (mapping) {
+            await manager.remove(mapping);
 
-    const mapping = this.rolePermissionRepository.create({
-      role_id: roleId,
-      permission_id: permission.id,
-    });
-
-    const saved = await this.rolePermissionRepository.save(mapping);
-
-    this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
-      event_type: AuditEventType.PERMISSION_ADDED_TO_ROLE,
-      tenant_id: tenantId,
-      actor_id: actorId,
-      resource_type: 'role',
-      resource_id: roleId,
-      payload: { permission_id: permissionId },
-    });
+            this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
+              event_type: AuditEventType.PERMISSION_REMOVED_FROM_ROLE,
+              tenant_id: tenantId,
+              actor_id: actorId,
+              resource_type: 'role',
+              resource_id: roleId,
+              payload: { permission_id: permission.id },
+            });
+          }
+        }
+      }
 
     this.eventProducer.emit(KAFKA_TOPICS.IAM_PERMISSION_CHANGED, {
       event_type: 'PERMISSION_CHANGED',
@@ -85,52 +111,5 @@ export class PermissionService extends BaseService<PermissionEntity> {
       actor_id: actorId,
       payload: { role_id: roleId },
     });
-
-    return saved;
-  }
-
-  async removeFromRole(
-    roleId: string,
-    tenantId: string,
-    permissionId: string,
-    actorId: string,
-  ): Promise<void> {
-    const role = await this.roleService.findOneForTenant(roleId, tenantId);
-
-    if (role.is_system) {
-      throw new BadRequestException(
-        'Cannot modify permissions of system roles',
-      );
-    }
-
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(permissionId);
-    const permission = await this.repository.findOne({
-      where: isUuid ? { id: permissionId } : { code: permissionId },
-    });
-    if (!permission) return;
-
-    const mapping = await this.rolePermissionRepository.findOne({
-      where: { role_id: roleId, permission_id: permission.id },
-    });
-
-    if (mapping) {
-      await this.rolePermissionRepository.remove(mapping);
-
-      this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
-        event_type: AuditEventType.PERMISSION_REMOVED_FROM_ROLE,
-        tenant_id: tenantId,
-        actor_id: actorId,
-        resource_type: 'role',
-        resource_id: roleId,
-        payload: { permission_id: permissionId },
-      });
-
-      this.eventProducer.emit(KAFKA_TOPICS.IAM_PERMISSION_CHANGED, {
-        event_type: 'PERMISSION_CHANGED',
-        tenant_id: tenantId,
-        actor_id: actorId,
-        payload: { role_id: roleId },
-      });
-    }
   }
 }

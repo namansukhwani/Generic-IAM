@@ -16,8 +16,8 @@ import { AuditEventType } from '../../common/constants/audit-events.constant';
 import { BaseService } from '../../common/base/base.service';
 import { UserEntity } from '../user/entities/user.entity';
 import type { RequestContext } from '../../common/interfaces/request-context.interface';
-
 import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
+import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 
 @Injectable({ scope: Scope.REQUEST })
 export class AssignmentService extends BaseService<UserRoleEntity> {
@@ -85,34 +85,76 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
     return assignment;
   }
 
-  async revokeFromUser(
+  async updateUserRoles(
     userId: string,
-    roleId: string,
     tenantId: string,
+    dto: UpdateUserRolesDto,
     actorId: string,
   ): Promise<void> {
-    const assignment = await this.repository.findOne({
-      where: { user_id: userId, role_id: roleId, tenant_id: tenantId },
+    const user = await this.userRepository.findOne({
+      where: { id: userId, tenant_id: tenantId },
     });
+    if (!user) throw new NotFoundException('User not found in tenant');
 
-    if (assignment) {
-      await this.repository.remove(assignment);
+    const manager = this.repository.manager;
+    if (dto.add && dto.add.length > 0) {
+        for (const item of dto.add) {
+          const role = await this.roleService.findOneForTenant(item.role_id, tenantId);
+          
+          let assignment = await manager.findOne(UserRoleEntity, {
+            where: { user_id: userId, role_id: item.role_id, tenant_id: tenantId },
+          });
 
-      this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
-        event_type: AuditEventType.ROLE_REVOKED,
-        tenant_id: tenantId,
-        actor_id: actorId,
-        resource_type: 'user',
-        resource_id: userId,
-        payload: { role_id: roleId },
-      });
+          if (assignment) {
+            assignment.expires_at = item.expires_at || null;
+            await manager.save(assignment);
+          } else {
+            assignment = manager.create(UserRoleEntity, {
+              tenant_id: tenantId,
+              user_id: userId,
+              role_id: item.role_id,
+              expires_at: item.expires_at || null,
+            });
+            await manager.save(assignment);
+          }
 
-      this.eventProducer.emit(KAFKA_TOPICS.IAM_PERMISSION_CHANGED, {
-        event_type: 'PERMISSION_CHANGED',
-        tenant_id: tenantId,
-        user_id: userId,
-      });
-    }
+          this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
+            event_type: AuditEventType.ROLE_ASSIGNED,
+            tenant_id: tenantId,
+            actor_id: actorId,
+            resource_type: 'user',
+            resource_id: userId,
+            payload: { role_id: item.role_id, expires_at: item.expires_at },
+          });
+        }
+      }
+
+      if (dto.remove && dto.remove.length > 0) {
+        for (const roleId of dto.remove) {
+          const assignment = await manager.findOne(UserRoleEntity, {
+            where: { user_id: userId, role_id: roleId, tenant_id: tenantId },
+          });
+
+          if (assignment) {
+            await manager.remove(assignment);
+
+            this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
+              event_type: AuditEventType.ROLE_REVOKED,
+              tenant_id: tenantId,
+              actor_id: actorId,
+              resource_type: 'user',
+              resource_id: userId,
+              payload: { role_id: roleId },
+            });
+          }
+        }
+      }
+
+    this.eventProducer.emit(KAFKA_TOPICS.IAM_PERMISSION_CHANGED, {
+      event_type: 'PERMISSION_CHANGED',
+      tenant_id: tenantId,
+      user_id: userId,
+    });
   }
 
   async getUserRoles(

@@ -2,6 +2,7 @@ import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import {
   Controller,
   Get,
+  Patch,
   Post,
   Delete,
   Param,
@@ -11,6 +12,7 @@ import {
 import { AssignmentService } from './assignment.service';
 import { OverrideService } from './override.service';
 import { AssignRoleDto } from './dto/assign-role.dto';
+import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import { CreateOverrideDto } from './dto/create-override.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser  } from '@iam/nestjs-sdk';
@@ -25,30 +27,16 @@ export class AssignmentController {
 
   // Roles
 
-  @Post('roles')
-  async assignRole(
+  @Patch('roles')
+  async updateUserRoles(
     @Param('userId') targetUserId: string,
-    @Body() dto: AssignRoleDto,
+    @Body() dto: UpdateUserRolesDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.assignmentService.assignToUser(
+    await this.assignmentService.updateUserRoles(
       targetUserId,
-      (user.tenant_id as string),
+      user.tenant_id as string,
       dto,
-      user.sub,
-    );
-  }
-
-  @Delete('roles/:roleId')
-  async revokeRole(
-    @Param('userId') targetUserId: string,
-    @Param('roleId') roleId: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    await this.assignmentService.revokeFromUser(
-      targetUserId,
-      roleId,
-      (user.tenant_id as string),
       user.sub,
     );
     return { success: true };

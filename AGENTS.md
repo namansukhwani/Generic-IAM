@@ -25,9 +25,9 @@ Co-Authored-By: Antigravity <antigravity@deepmind.google.com>
 - **Guards**: IAM modules use `IamPermissionGuard` and `IamAclGuard` (which call `AuthorizationService`). The SDK uses `PermissionGuard` and `AclGuard` (which call `IamAuthzService`). All guards support checking effective permissions and resource ACLs dynamically.
 ## Module Status
 - `tenant`: CRUD implemented. Includes tenant-level audit log API.
-- `user`: CRUD, user hierarchy query. Auto-assigns `MEMBER` role on creation if no `role_id` is provided.
+- `user`: CRUD, status updates, user hierarchy query. Auto-assigns `MEMBER` role on creation. Batch role updates.
 - `auth`: JWT strategy, cross-tenant login.
-- `rbac`: Role CRUD, permission assignment. Permissions use hierarchical dot notation (`code`) format.
+- `rbac`: Role CRUD, batch role-permission assignment via PATCH. Permissions use hierarchical dot notation (`code`) format.
 - `acl`: Resource ACL CRUD.
 - `authorization`: Centralized authz checks.
 - `super-admin`: Impersonation, tenant management.

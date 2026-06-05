@@ -13,6 +13,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { IdentityTypes  } from '@iam/nestjs-sdk';
 import { IdentityType } from '../../common/constants/identity-types.constant';
@@ -112,35 +113,19 @@ export class UserController {
     return new UserResponseDto(updated);
   }
 
-  @Patch(':id/activate')
-  @ApiOperation({ summary: 'Activate user' })
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Update user status' })
   @IdentityTypes(IdentityType.USER, IdentityType.SUPER_ADMIN)
   @RequirePermissions(SYSTEM_PERMISSIONS.USER.WRITE)
-  async activate(
+  async updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateUserStatusDto,
     @CurrentUser() user: JwtPayload,
   ) {
     await this.userService.setActivation(
       id,
       user.tenant_id || '',
-      true,
-      user.sub,
-    );
-    return { success: true };
-  }
-
-  @Patch(':id/deactivate')
-  @ApiOperation({ summary: 'Deactivate user' })
-  @IdentityTypes(IdentityType.USER, IdentityType.SUPER_ADMIN)
-  @RequirePermissions(SYSTEM_PERMISSIONS.USER.WRITE)
-  async deactivate(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    await this.userService.setActivation(
-      id,
-      user.tenant_id || '',
-      false,
+      dto.is_active,
       user.sub,
     );
     return { success: true };

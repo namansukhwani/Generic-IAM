@@ -379,7 +379,7 @@ expense
 
 ### 12A: User Activate/Deactivate → Single Status API
 
-- [ ] **12A.1** Replace `PATCH /users/:id/activate` + `PATCH /users/:id/deactivate` with `PATCH /users/:id/status`
+- [x] **12A.1** Replace `PATCH /users/:id/activate` + `PATCH /users/:id/deactivate` with `PATCH /users/:id/status`
   ```typescript
   // Body: { is_active: boolean }
   @Patch(':id/status')
@@ -390,12 +390,12 @@ expense
     @CurrentUser() user: JwtPayload,
   ) { ... }
   ```
-- [ ] **12A.2** Create `UpdateUserStatusDto` with `@IsBoolean() is_active`
-- [ ] **12A.3** Remove `activate()` and `deactivate()` methods from [user.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/user/user.controller.ts)
+- [x] **12A.2** Create `UpdateUserStatusDto` with `@IsBoolean() is_active`
+- [x] **12A.3** Remove `activate()` and `deactivate()` methods from [user.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/user/user.controller.ts)
 
 ### 12B: Role Permissions → Partial Update API
 
-- [ ] **12B.1** Replace `POST /roles/:id/permissions/:permissionId` + `DELETE /roles/:id/permissions/:permissionId` with `PATCH /roles/:id/permissions`
+- [x] **12B.1** Replace `POST /roles/:id/permissions/:permissionId` + `DELETE /roles/:id/permissions/:permissionId` with `PATCH /roles/:id/permissions`
   ```typescript
   // Body: { add: string[], remove: string[] }  — permission IDs
   @Patch(':id/permissions')
@@ -405,7 +405,7 @@ expense
     @CurrentUser() user: JwtPayload,
   ) { ... }
   ```
-- [ ] **12B.2** Create `UpdateRolePermissionsDto`:
+- [x] **12B.2** Create `UpdateRolePermissionsDto`:
   ```typescript
   class UpdateRolePermissionsDto {
     @IsOptional() @IsArray() @IsUUID('4', { each: true })
@@ -415,12 +415,12 @@ expense
     remove?: string[];
   }
   ```
-- [ ] **12B.3** Implement `PermissionService.updateRolePermissions(roleId, tenantId, dto, actorId)` — batch add/remove in single transaction
-- [ ] **12B.4** Remove old `assignPermissionToRole()` and `removePermissionFromRole()` from [permission.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/permission.controller.ts)
+- [x] **12B.3** Implement `PermissionService.updateRolePermissions(roleId, tenantId, dto, actorId)` — batch add/remove in single transaction
+- [x] **12B.4** Remove old `assignPermissionToRole()` and `removePermissionFromRole()` from [permission.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/permission.controller.ts)
 
 ### 12C: User Roles → Partial Update API
 
-- [ ] **12C.1** Replace `POST /users/:id/roles` + `DELETE /users/:id/roles/:roleId` with `PATCH /users/:id/roles`
+- [x] **12C.1** Replace `POST /users/:id/roles` + `DELETE /users/:id/roles/:roleId` with `PATCH /users/:id/roles`
   ```typescript
   // Body: { add: [{ role_id, expires_at? }], remove: string[] }
   @Patch(':userId/roles')
@@ -430,7 +430,7 @@ expense
     @CurrentUser() user: JwtPayload,
   ) { ... }
   ```
-- [ ] **12C.2** Create `UpdateUserRolesDto`:
+- [x] **12C.2** Create `UpdateUserRolesDto`:
   ```typescript
   class UpdateUserRolesDto {
     @IsOptional() @IsArray() @ValidateNested({ each: true })
@@ -440,8 +440,8 @@ expense
     remove?: string[];
   }
   ```
-- [ ] **12C.3** Implement `AssignmentService.updateUserRoles(userId, tenantId, dto, actorId)` — batch assign/revoke in single transaction
-- [ ] **12C.4** Remove old `assignRole()` and `revokeRole()` from [assignment.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/assignment.controller.ts)
+- [x] **12C.3** Implement `AssignmentService.updateUserRoles(userId, tenantId, dto, actorId)` — batch assign/revoke in single transaction
+- [x] **12C.4** Remove old `assignRole()` and `revokeRole()` from [assignment.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/assignment.controller.ts)
 
 ---
 
