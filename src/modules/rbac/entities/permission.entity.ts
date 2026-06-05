@@ -1,14 +1,24 @@
-import { Entity, Column, Unique } from 'typeorm';
+import { Entity, Column, Unique, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { BaseEntity } from '../../../common/base/base.entity';
 
 @Entity('permissions')
-@Unique(['resource', 'action'])
+@Unique(['code'])
 export class PermissionEntity extends BaseEntity {
   @Column()
-  resource: string;
+  code: string;
 
   @Column()
-  action: string;
+  service: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  parent_id: string | null;
+
+  @ManyToOne(() => PermissionEntity, { nullable: true })
+  @JoinColumn({ name: 'parent_id' })
+  parent: PermissionEntity | null;
+
+  @OneToMany(() => PermissionEntity, (p) => p.parent)
+  children: PermissionEntity[];
 
   @Column({ nullable: true })
   description: string;

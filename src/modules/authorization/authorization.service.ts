@@ -5,6 +5,7 @@ import { OverrideService } from '../rbac/override.service';
 import { AclService } from '../acl/acl.service';
 import { CheckAuthzDto } from './dto/check-authz.dto';
 import { EventProducer } from '../../event/event.producer';
+import { hasPermission } from '@iam/nestjs-sdk';
 
 @Injectable()
 export class AuthorizationService {
@@ -37,7 +38,8 @@ export class AuthorizationService {
         dto.user_id,
         dto.tenant_id,
       );
-    let allowed = effectivePermissions.some((p) => p.action === dto.permission);
+    const effectiveSet = new Set(effectivePermissions.map((p) => p.code));
+    let allowed = hasPermission(effectiveSet, dto.permission);
     let source = 'rbac';
 
     // 2. Check ACL if RBAC denied and resource is specified

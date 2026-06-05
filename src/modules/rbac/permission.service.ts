@@ -49,13 +49,14 @@ export class PermissionService extends BaseService<PermissionEntity> {
       );
     }
 
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(permissionId);
     const permission = await this.repository.findOne({
-      where: { id: permissionId },
+      where: isUuid ? { id: permissionId } : { code: permissionId },
     });
     if (!permission) throw new NotFoundException('Permission not found');
 
     const existing = await this.rolePermissionRepository.findOne({
-      where: { role_id: roleId, permission_id: permissionId },
+      where: { role_id: roleId, permission_id: permission.id },
     });
 
     if (existing) {
@@ -64,7 +65,7 @@ export class PermissionService extends BaseService<PermissionEntity> {
 
     const mapping = this.rolePermissionRepository.create({
       role_id: roleId,
-      permission_id: permissionId,
+      permission_id: permission.id,
     });
 
     const saved = await this.rolePermissionRepository.save(mapping);
@@ -101,8 +102,14 @@ export class PermissionService extends BaseService<PermissionEntity> {
       );
     }
 
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(permissionId);
+    const permission = await this.repository.findOne({
+      where: isUuid ? { id: permissionId } : { code: permissionId },
+    });
+    if (!permission) return;
+
     const mapping = await this.rolePermissionRepository.findOne({
-      where: { role_id: roleId, permission_id: permissionId },
+      where: { role_id: roleId, permission_id: permission.id },
     });
 
     if (mapping) {

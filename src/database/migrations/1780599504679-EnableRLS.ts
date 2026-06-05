@@ -20,6 +20,7 @@ export class EnableRLS1780599504679 implements MigrationInterface {
       'role_permissions',
       'resource_acls',
       'user_permission_overrides',
+      'audit_logs',
     ];
     for (const table of tables) {
       await queryRunner.query(
@@ -33,17 +34,17 @@ export class EnableRLS1780599504679 implements MigrationInterface {
     // Policies
     await queryRunner.query(`
             CREATE POLICY tenant_isolation ON users
-            USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
+            USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
         `);
 
     await queryRunner.query(`
             CREATE POLICY tenant_isolation ON roles
-            USING (is_system = true OR tenant_id = current_setting('app.current_tenant', true)::uuid);
+            USING (is_system = true OR tenant_id = current_setting('app.current_tenant_id', true)::uuid);
         `);
 
     await queryRunner.query(`
             CREATE POLICY tenant_isolation ON user_roles
-            USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
+            USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
         `);
 
     await queryRunner.query(`
@@ -51,19 +52,24 @@ export class EnableRLS1780599504679 implements MigrationInterface {
             USING (
                 role_id IN (
                     SELECT id FROM roles 
-                    WHERE is_system = true OR tenant_id = current_setting('app.current_tenant', true)::uuid
+                    WHERE is_system = true OR tenant_id = current_setting('app.current_tenant_id', true)::uuid
                 )
             );
         `);
 
     await queryRunner.query(`
             CREATE POLICY tenant_isolation ON resource_acls
-            USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
+            USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
         `);
 
     await queryRunner.query(`
             CREATE POLICY tenant_isolation ON user_permission_overrides
-            USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
+            USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+        `);
+
+    await queryRunner.query(`
+            CREATE POLICY tenant_isolation ON audit_logs
+            USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid OR tenant_id IS NULL);
         `);
   }
 
@@ -75,6 +81,7 @@ export class EnableRLS1780599504679 implements MigrationInterface {
       'role_permissions',
       'resource_acls',
       'user_permission_overrides',
+      'audit_logs',
     ];
 
     for (const table of tables) {

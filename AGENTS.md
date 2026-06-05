@@ -19,7 +19,7 @@ Co-Authored-By: Antigravity <antigravity@deepmind.google.com>
 ## Key Conventions
 - **Architecture**: Strict Clean Architecture (Domain > Application > Infrastructure).
 - **Base Service**: Services inherit from `BaseService<T>` in `src/common/base/base.service.ts`.
-- **Transactions**: Interceptor handles transactions. Services use `@Inject(REQUEST) protected readonly request: RequestContext` and pass `request` to `super(defaultRepository, request)`.
+- **Transactions**: `TenantTransactionInterceptor` handles DB transaction lifecycle and RLS isolation. Services use `@Inject(REQUEST) protected readonly request: RequestContext` and pass `request` to `super(defaultRepository, request)`.
 - **Database**: PostgreSQL with Row-Level Security (RLS). Tenant creation bypasses RLS.
 - **Events**: Emit audit/changed events to Kafka (e.g. `KAFKA_TOPICS.IAM_AUDIT`) using `eventProducer`.
 
@@ -27,7 +27,7 @@ Co-Authored-By: Antigravity <antigravity@deepmind.google.com>
 - `tenant`: CRUD implemented.
 - `user`: CRUD, user hierarchy query.
 - `auth`: JWT strategy, cross-tenant login.
-- `rbac`: Role CRUD, permission assignment.
+- `rbac`: Role CRUD, permission assignment. Permissions use hierarchical dot notation (`code`) format.
 - `acl`: Resource ACL CRUD.
 - `authorization`: Centralized authz checks.
 - `super-admin`: Impersonation, tenant management.

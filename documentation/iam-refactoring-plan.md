@@ -92,7 +92,7 @@
 
 ### Action Items
 
-- [ ] **4.1** Create `src/common/interceptors/tenant-transaction.interceptor.ts`:
+- [x] **4.1** Create `src/common/interceptors/tenant-transaction.interceptor.ts`:
   ```typescript
   @Injectable()
   export class TenantTransactionInterceptor implements NestInterceptor {
@@ -129,18 +129,18 @@
     }
   }
   ```
-- [ ] **4.2** Extend `RequestContext` interface to include `entityManager?: EntityManager`
-- [ ] **4.3** Create PostgreSQL RLS policies (migration file) for all tenant-scoped tables (`users`, `roles`, `user_roles`, `permissions`, `acl_entries`, `audit_logs`, etc.):
+- [x] **4.2** Extend `RequestContext` interface to include `entityManager?: EntityManager`
+- [x] **4.3** Create PostgreSQL RLS policies (migration file) for all tenant-scoped tables (`users`, `roles`, `user_roles`, `permissions`, `acl_entries`, `audit_logs`, etc.):
   ```sql
   ALTER TABLE users ENABLE ROW LEVEL SECURITY;
   CREATE POLICY tenant_isolation ON users
     USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
   ```
-- [ ] **4.4** Register interceptor globally in `AppModule` via `APP_INTERCEPTOR`, **after** JwtAuthGuard runs (interceptors run after guards in Nest)
-- [ ] **4.5** Ensure super-admin routes (in [super-admin.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/super-admin/super-admin.controller.ts)) bypass RLS — interceptor skips `set_config` when `identity_type === SUPER_ADMIN`
-- [ ] **4.6** Ensure tenant creation route bypasses RLS — mark with `@Public()` or check `!tenantId` before setting config
-- [ ] **4.7** Update services to use `request.entityManager` (from interceptor) instead of injected repositories for tenant-scoped queries. Create a `@InjectTenantManager()` decorator or use `REQUEST` scope
-- [ ] **4.8** Write integration test: create 2 tenants, verify user queries are isolated
+- [x] **4.4** Register interceptor globally in `AppModule` via `APP_INTERCEPTOR`, **after** JwtAuthGuard runs (interceptors run after guards in Nest)
+- [x] **4.5** Ensure super-admin routes (in [super-admin.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/super-admin/super-admin.controller.ts)) bypass RLS — interceptor skips `set_config` when `identity_type === SUPER_ADMIN`
+- [x] **4.6** Ensure tenant creation route bypasses RLS — mark with `@Public()` or check `!tenantId` before setting config
+- [x] **4.7** Update services to use `request.entityManager` (from interceptor) instead of injected repositories for tenant-scoped queries. Create a `@InjectTenantManager()` decorator or use `REQUEST` scope
+- [x] **4.8** Write integration test: create 2 tenants, verify user queries are isolated
 
 > [!WARNING]
 > Services using `@InjectRepository` bypass the transaction manager. Refactor services to accept `EntityManager` from request context for RLS enforcement.
@@ -207,7 +207,7 @@ expense
 
 ### Action Items
 
-- [ ] **5.1** Refactor [permission.entity.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/entities/permission.entity.ts) — replace `resource` + `action` columns with single `code` column (e.g., `expense.departments.create`) + optional `parent_id` FK for tree structure + `service` column for service grouping
+- [x] **5.1** Refactor [permission.entity.ts](file:///Users/naman.sukhwani/IAM/src/modules/rbac/entities/permission.entity.ts) — replace `resource` + `action` columns with single `code` column (e.g., `expense.departments.create`) + optional `parent_id` FK for tree structure + `service` column for service grouping
   ```typescript
   @Entity('permissions')
   @Unique(['code'])
@@ -232,18 +232,18 @@ expense
     description: string;
   }
   ```
-- [ ] **5.2** Rewrite [permission-matcher.util.ts](file:///Users/naman.sukhwani/IAM/packages/iam-sdk/src/utils/permission-matcher.util.ts) — support dot-separated hierarchical matching with `*` wildcard at any level:
+- [x] **5.2** Rewrite [permission-matcher.util.ts](file:///Users/naman.sukhwani/IAM/packages/iam-sdk/src/utils/permission-matcher.util.ts) — support dot-separated hierarchical matching with `*` wildcard at any level:
   ```typescript
   // "expense.*" matches "expense.departments.create"
   // "expense.departments.*" matches "expense.departments.budget.update"
   // "*" matches everything
   ```
-- [ ] **5.3** Refactor [system-permissions.constant.ts](file:///Users/naman.sukhwani/IAM/src/common/constants/system-permissions.constant.ts) — use dot-notation, add full expense service tree
-- [ ] **5.4** Create DB migration to alter `permissions` table schema and seed all expense service permissions
-- [ ] **5.5** Update `PermissionService.assignToRole()` — validate permission exists by `code` not `id` or support both
-- [ ] **5.6** Update `AuthorizationService.check()` — permission matching uses hierarchical matcher, e.g., user has `expense.*` → allowed for `expense.departments.create`
-- [ ] **5.7** Update all `@RequirePermissions()` decorators across controllers to use new dot-notation codes
-- [ ] **5.8** Update permission-matcher tests for hierarchical wildcard scenarios
+- [x] **5.3** Refactor [system-permissions.constant.ts](file:///Users/naman.sukhwani/IAM/src/common/constants/system-permissions.constant.ts) — use dot-notation, add full expense service tree
+- [x] **5.4** Create DB migration to alter `permissions` table schema and seed all expense service permissions
+- [x] **5.5** Update `PermissionService.assignToRole()` — validate permission exists by `code` not `id` or support both
+- [x] **5.6** Update `AuthorizationService.check()` — permission matching uses hierarchical matcher, e.g., user has `expense.*` → allowed for `expense.departments.create`
+- [x] **5.7** Update all `@RequirePermissions()` decorators across controllers to use new dot-notation codes
+- [x] **5.8** Update permission-matcher tests for hierarchical wildcard scenarios
 
 ---
 

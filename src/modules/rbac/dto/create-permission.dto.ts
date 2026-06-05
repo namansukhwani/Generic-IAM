@@ -1,18 +1,24 @@
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreatePermissionDto {
+  @ApiProperty({ example: 'expense.departments.create' })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(100)
-  resource: string;
+  code: string;
 
+  @ApiProperty({ example: 'expense' })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(100)
-  action: string;
+  service: string;
 
+  @ApiPropertyOptional({ example: 'uuid' })
+  @IsUUID()
+  @IsOptional()
+  parent_id?: string;
+
+  @ApiPropertyOptional()
   @IsString()
   @IsOptional()
-  @MaxLength(500)
   description?: string;
 }

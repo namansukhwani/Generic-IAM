@@ -11,6 +11,8 @@ import kafkaConfig from './config/kafka.config';
 
 import { DatabaseModule } from './database/database.module';
 import { TenantContextMiddleware } from './common/middleware/tenant-context.middleware';
+import { TenantTransactionInterceptor } from './common/interceptors/tenant-transaction.interceptor';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CommonModule } from './common/common.module';
 import { CacheModule } from './cache/cache.module';
 import { EventModule } from './event/event.module';
@@ -48,8 +50,8 @@ import { HealthModule } from './health/health.module';
   providers: [
     AppService,
     {
-      provide: 'APP_INTERCEPTOR',
-      useClass: require('./common/interceptors/tenant-transaction.interceptor').TenantTransactionInterceptor,
+      provide: APP_INTERCEPTOR,
+      useClass: TenantTransactionInterceptor,
     },
   ],
 })
