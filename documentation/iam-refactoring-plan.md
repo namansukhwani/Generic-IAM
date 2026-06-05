@@ -300,15 +300,15 @@ expense
 
 ### Action Items
 
-- [ ] **8.1** Update [event.producer.ts](file:///Users/naman.sukhwani/IAM/src/event/event.producer.ts) `emit()` method — accept `key` parameter, derive from `event.tenant_id` + `event.user_id` (or `event.actor_id`):
+- [x] **8.1** Update [event.producer.ts](file:///Users/naman.sukhwani/IAM/src/event/event.producer.ts) `emit()` method — accept `key` parameter, derive from `event.tenant_id` + `event.user_id` (or `event.actor_id`):
   ```typescript
   emit(topic: string, event: BaseEvent): void {
     const key = `${event.tenant_id || 'system'}:${event.user_id || event.actor_id || 'unknown'}`;
     this.client.emit(topic, { key, value: { event_id: uuidv4(), timestamp: new Date().toISOString(), ...event } });
   }
   ```
-- [ ] **8.2** Verify Kafka producer config supports keyed messages — NestJS `ClientKafka.emit()` supports `{ key, value }` shape natively
-- [ ] **8.3** Update all `eventProducer.emit()` calls — ensure `user_id` or `actor_id` is present in event payload for key derivation (audit calls already have `actor_id`)
+- [x] **8.2** Verify Kafka producer config supports keyed messages — NestJS `ClientKafka.emit()` supports `{ key, value }` shape natively
+- [x] **8.3** Update all `eventProducer.emit()` calls — ensure `user_id` or `actor_id` is present in event payload for key derivation (audit calls already have `actor_id`)
 
 ---
 

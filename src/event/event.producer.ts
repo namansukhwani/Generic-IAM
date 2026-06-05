@@ -33,6 +33,7 @@ export class EventProducer implements OnModuleInit, OnModuleDestroy {
   }
 
   emit(topic: string, event: BaseEvent): void {
+    const key = `${event.tenant_id || 'system'}:${event.user_id || event.actor_id || 'unknown'}`;
     const message = {
       event_id: uuidv4(),
       timestamp: new Date().toISOString(),
@@ -40,6 +41,6 @@ export class EventProducer implements OnModuleInit, OnModuleDestroy {
     };
 
     // Fire and forget using emit
-    this.client.emit(topic, message);
+    this.client.emit(topic, { key, value: message });
   }
 }

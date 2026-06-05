@@ -82,6 +82,7 @@ export class PermissionService extends BaseService<PermissionEntity> {
     this.eventProducer.emit(KAFKA_TOPICS.IAM_PERMISSION_CHANGED, {
       event_type: 'PERMISSION_CHANGED',
       tenant_id: tenantId,
+      actor_id: actorId,
       payload: { role_id: roleId },
     });
 
@@ -127,6 +128,7 @@ export class PermissionService extends BaseService<PermissionEntity> {
       this.eventProducer.emit(KAFKA_TOPICS.IAM_PERMISSION_CHANGED, {
         event_type: 'PERMISSION_CHANGED',
         tenant_id: tenantId,
+        actor_id: actorId,
         payload: { role_id: roleId },
       });
     }
