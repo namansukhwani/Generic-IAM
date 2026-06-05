@@ -21,9 +21,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException();
     }
     return {
+      sub: payload.sub,
       userId: payload.sub,
+      tenant_id: payload.tenant_id,
       tenantId: payload.tenant_id,
-      identityType: payload.identity_type || 'USER', // USER, SUPER_ADMIN, IMPERSONATION
+      identity_type: payload.identity_type || 'USER',
+      identityType: payload.identity_type || 'USER',
       email: payload.email,
     };
   }

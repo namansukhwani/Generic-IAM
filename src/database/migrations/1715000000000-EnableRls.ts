@@ -23,13 +23,24 @@ export class EnableRls1715000000000 implements MigrationInterface {
         await queryRunner.query(
           `DROP POLICY IF EXISTS tenant_isolation ON ${table}`,
         );
-        await queryRunner.query(`
-          CREATE POLICY tenant_isolation ON ${table}
-          USING (
-            tenant_id = current_setting('app.current_tenant_id', true)::uuid
-            OR current_setting('app.current_tenant_id', true) IS NULL
-          )
-        `);
+        
+        // Only apply policy if table contains tenant_id column (permissions doesn't)
+        const hasTenantIdColumn = await queryRunner.hasColumn(table, 'tenant_id');
+        if (hasTenantIdColumn) {
+          await queryRunner.query(`
+            CREATE POLICY tenant_isolation ON ${table}
+            USING (
+              tenant_id = current_setting('app.current_tenant_id', true)::uuid
+              OR current_setting('app.current_tenant_id', true) IS NULL
+            )
+          `);
+        } else {
+          // Global tables: visible to all, but only writable/readable normally
+          await queryRunner.query(`
+            CREATE POLICY tenant_isolation ON ${table}
+            USING (true)
+          `);
+        }
       }
     }
   }

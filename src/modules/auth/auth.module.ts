@@ -8,11 +8,12 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RefreshTokenEntity } from './entities/refresh-token.entity';
 import { UserEntity } from '../user/entities/user.entity';
+import { SuperAdminEntity } from '../super-admin/entities/super-admin.entity';
 import { EventModule } from '../../event/event.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([RefreshTokenEntity, UserEntity]),
+    TypeOrmModule.forFeature([RefreshTokenEntity, UserEntity, SuperAdminEntity]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

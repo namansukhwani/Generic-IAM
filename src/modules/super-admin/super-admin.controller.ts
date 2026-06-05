@@ -16,10 +16,12 @@ import {
 import { SuperAdminService } from './super-admin.service';
 import { ImpersonateDto } from './dto/impersonate.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from '@iam/nestjs-sdk';
+import { CurrentUser, IdentityTypes } from '@iam/nestjs-sdk';
+import { IdentityType } from '../../common/constants/identity-types.constant';
 
 @Controller('super-admin')
 @UseGuards(AuthGuard('jwt'))
+@IdentityTypes(IdentityType.SUPER_ADMIN)
 export class SuperAdminController {
   constructor(private readonly superAdminService: SuperAdminService) {}
 

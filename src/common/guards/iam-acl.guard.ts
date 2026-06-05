@@ -24,7 +24,19 @@ export class IamAclGuard extends AclGuard {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const aclMeta = this.reflector.getAllAndOverride<AclMetadata>(ACL_KEY, [
+    const reflector = this.reflector || (this as any).reflector;
+    if (!reflector) {
+      return true;
+    }
+    const isPublic = reflector.getAllAndOverride<boolean>('isPublic', [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) {
+      return true;
+    }
+
+    const aclMeta = reflector.getAllAndOverride<AclMetadata>(ACL_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);

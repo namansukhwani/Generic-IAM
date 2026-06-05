@@ -23,7 +23,19 @@ export class IamPermissionGuard extends PermissionGuard {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
+    const reflector = this.reflector || (this as any).reflector;
+    if (!reflector) {
+      return true;
+    }
+    const isPublic = reflector.getAllAndOverride<boolean>('isPublic', [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) {
+      return true;
+    }
+
+    const requiredPermissions = reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
     );

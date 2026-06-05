@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SuperAdminService } from './super-admin.service';
 import { SuperAdminController } from './super-admin.controller';
+import { SuperAdminEntity } from './entities/super-admin.entity';
 import { TenantEntity } from '../tenant/entities/tenant.entity';
 import { UserEntity } from '../user/entities/user.entity';
 import { EventModule } from '../../event/event.module';
@@ -11,7 +12,7 @@ import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([TenantEntity, UserEntity]),
+    TypeOrmModule.forFeature([SuperAdminEntity, TenantEntity, UserEntity]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { UserEntity } from '../user/entities/user.entity';
+import { SuperAdminEntity } from '../super-admin/entities/super-admin.entity';
 import { RefreshTokenEntity } from './entities/refresh-token.entity';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -27,6 +28,8 @@ export class AuthService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(SuperAdminEntity)
+    private readonly superAdminRepository: Repository<SuperAdminEntity>,
     @InjectRepository(RefreshTokenEntity)
     private readonly refreshTokenRepository: Repository<RefreshTokenEntity>,
     private readonly jwtService: JwtService,
@@ -38,15 +41,27 @@ export class AuthService {
     const user = await this.userRepository.findOne({
       where: { email: dto.email },
     });
+
+    let isSuperAdmin = false;
+    let superAdminUser: SuperAdminEntity | null = null;
+
     if (!user) {
-      this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
-        event_type: AuditEventType.AUTH_LOGIN_FAILED,
-        payload: { email: dto.email, reason: 'User not found' },
+      // Check if it is a Super Admin
+      superAdminUser = await this.superAdminRepository.findOne({
+        where: { email: dto.email },
       });
-      throw new UnauthorizedException('Invalid credentials');
+
+      if (!superAdminUser) {
+        this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
+          event_type: AuditEventType.AUTH_LOGIN_FAILED,
+          payload: { email: dto.email, reason: 'User not found' },
+        });
+        throw new UnauthorizedException('Invalid credentials');
+      }
+      isSuperAdmin = true;
     }
 
-    if (!user.is_active) {
+    if (user && !user.is_active) {
       this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
         event_type: AuditEventType.AUTH_LOGIN_FAILED,
         payload: { email: dto.email, reason: 'User inactive' },
@@ -54,7 +69,18 @@ export class AuthService {
       throw new UnauthorizedException('User account is inactive');
     }
 
-    const isMatch = await comparePassword(dto.password, user.password_hash);
+    if (superAdminUser && !superAdminUser.is_active) {
+      this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
+        event_type: AuditEventType.AUTH_LOGIN_FAILED,
+        payload: { email: dto.email, reason: 'SuperAdmin inactive' },
+      });
+      throw new UnauthorizedException('SuperAdmin account is inactive');
+    }
+
+    const passwordHash = isSuperAdmin
+      ? superAdminUser!.password_hash
+      : user!.password_hash;
+    const isMatch = await comparePassword(dto.password, passwordHash);
     if (!isMatch) {
       this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
         event_type: AuditEventType.AUTH_LOGIN_FAILED,
@@ -63,16 +89,17 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const { access_token, refresh_token, expires_in } =
-      await this.generateTokens(user);
+    const { access_token, refresh_token, expires_in } = isSuperAdmin
+      ? await this.generateSuperAdminTokens(superAdminUser!)
+      : await this.generateTokens(user!);
 
     this.eventProducer.emit(KAFKA_TOPICS.IAM_AUDIT, {
       event_type: AuditEventType.AUTH_LOGIN_SUCCESS,
-      tenant_id: user.tenant_id,
-      actor_id: user.id,
-      resource_type: 'user',
-      resource_id: user.id,
-      payload: { email: user.email },
+      tenant_id: isSuperAdmin ? undefined : user!.tenant_id,
+      actor_id: isSuperAdmin ? superAdminUser!.id : user!.id,
+      resource_type: isSuperAdmin ? 'super_admin' : 'user',
+      resource_id: isSuperAdmin ? superAdminUser!.id : user!.id,
+      payload: { email: dto.email },
     });
 
     return { access_token, refresh_token, token_type: 'Bearer', expires_in };
@@ -176,6 +203,31 @@ export class AuthService {
     };
   }
 
+  private async generateSuperAdminTokens(superAdmin: SuperAdminEntity) {
+    const payload = {
+      sub: superAdmin.id,
+      email: superAdmin.email,
+      tenant_id: null,
+      identity_type: 'SUPER_ADMIN',
+    };
+
+    const accessTtl = this.configService.get<number>('jwt.accessTtl') || 900;
+    const refreshTtl =
+      this.configService.get<number>('jwt.refreshTtl') || 604800;
+
+    const access_token = this.jwtService.sign(payload, {
+      expiresIn: accessTtl,
+    });
+
+    const plainRefreshToken = crypto.randomBytes(40).toString('hex');
+
+    return {
+      access_token,
+      refresh_token: plainRefreshToken,
+      expires_in: accessTtl,
+    };
+  }
+
   async getMe(userId: string) {
     const user = await this.userRepository.findOne({
       where: { id: userId },
@@ -191,7 +243,33 @@ export class AuthService {
         updated_at: true,
       },
     });
-    if (!user) throw new BadRequestException('User not found');
-    return user;
+
+    if (user) {
+      return user;
+    }
+
+    // Check if it's a SuperAdmin
+    const superAdmin = await this.superAdminRepository.findOne({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        is_active: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+
+    if (!superAdmin) {
+      throw new BadRequestException('User not found');
+    }
+
+    return {
+      ...superAdmin,
+      first_name: 'Super',
+      last_name: 'Admin',
+      tenant_id: null,
+      manager_id: null,
+    };
   }
 }

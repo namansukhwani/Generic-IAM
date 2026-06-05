@@ -9,7 +9,7 @@ import { EventProducer } from '../../event/event.producer';
 import { AuditEventType } from '../../common/constants/audit-events.constant';
 import { BaseService } from '../../common/base/base.service';
 import type { RequestContext } from '../../common/interfaces/request-context.interface';
-import { KAFKA_TOPICS } from 'src/common/constants/kafka.constant';
+import { KAFKA_TOPICS } from '../../common/constants/kafka.constant';
 import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto';
 
 @Injectable({ scope: Scope.REQUEST })

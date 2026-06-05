@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { UserEntity } from '../../modules/user/entities/user.entity';
+import { SuperAdminEntity } from '../../modules/super-admin/entities/super-admin.entity';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 
@@ -7,7 +7,7 @@ export async function seedSuperAdmin(
   dataSource: DataSource,
   configService: ConfigService,
 ) {
-  const userRepo = dataSource.getRepository(UserEntity);
+  const superAdminRepo = dataSource.getRepository(SuperAdminEntity);
 
   const email = configService.get<string>(
     'SUPER_ADMIN_EMAIL',
@@ -18,20 +18,17 @@ export async function seedSuperAdmin(
     'SuperSecretPassword123!',
   );
 
-  const existing = await userRepo.findOne({ where: { email } });
+  const existing = await superAdminRepo.findOne({ where: { email } });
 
   if (!existing) {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const superAdmin = userRepo.create({
+    const superAdmin = superAdminRepo.create({
       email,
       password_hash: hashedPassword,
-      first_name: 'Super',
-      last_name: 'Admin',
       is_active: true,
-      tenant_id: null as any, // Global user
     });
 
-    await userRepo.save(superAdmin);
+    await superAdminRepo.save(superAdmin);
     console.log(`✅ SuperAdmin user seeded (${email}).`);
   } else {
     console.log(`ℹ️ SuperAdmin user (${email}) already exists.`);

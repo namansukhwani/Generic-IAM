@@ -1,9 +1,13 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/require-permissions.decorator';
 import { RequestContext } from '../interfaces/request-context.interface';
 import { IdentityType } from '../constants/identity-types.constant';
-import { hasPermission } from '../utils/permission-matcher.util';
 import { IamAuthzService } from '../iam-authz.service';
 
 @Injectable()
