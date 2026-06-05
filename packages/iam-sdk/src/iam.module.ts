@@ -5,6 +5,7 @@ import { IamAuthzService } from './iam-authz.service';
 export interface IamModuleOptions {
   iamUrl: string;
   redisUrl: string;
+  jwtSecret: string;
 }
 
 @Global()
@@ -22,10 +23,14 @@ export class IamModule {
           provide: 'REDIS_URL',
           useValue: options.redisUrl,
         },
+        {
+          provide: 'JWT_SECRET',
+          useValue: options.jwtSecret,
+        },
         IamClientService,
         IamAuthzService,
       ],
-      exports: [IamClientService, IamAuthzService, 'IAM_URL'],
+      exports: [IamClientService, IamAuthzService, 'IAM_URL', 'JWT_SECRET'],
     };
   }
 }

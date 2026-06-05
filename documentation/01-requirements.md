@@ -14,8 +14,6 @@
 4. [Non-Functional Requirements](#4-non-functional-requirements)
 5. [Understanding Summary](#5-understanding-summary)
 6. [MVP Feature Matrix](#6-mvp-feature-matrix)
-7. [Future Roadmap](#7-future-roadmap)
-
 ---
 
 ## 1. Executive Summary
@@ -193,39 +191,6 @@ Design an enterprise-grade Access Control System for a multi-tenant microservice
 | PgBouncer | ❌ Post-MVP | P2 | Connection pooler for 10+ instances |
 | Multi-region | ❌ Post-MVP | P3 | |
 | ABAC | ❌ Post-MVP | P3 | |
-
----
-
-## 7. Future Roadmap
-
-### Phase 2 — Hardening (Post-MVP)
-- Rate limiting (Redis sliding window) on auth endpoints
-- Token blacklist in Redis for immediate revocation
-- Password reset + email verification
-- MFA (TOTP/SMS)
-- Account lockout after N failed attempts
-
-### Phase 3 — Enterprise Features
-- OAuth2 / SAML SSO integration
-- SCIM provisioning
-- ABAC policy engine
-- Dynamic permission policies
-- Delegated administration
-
-### Phase 4 — Scale & Observability
-- PgBouncer connection pooling (when scaling beyond 10+ app instances)
-- Distributed tracing (OpenTelemetry)
-- Prometheus metrics + Grafana dashboards
-- Audit log archival to object storage
-- Read replicas for authz check scaling
-- Redis Cluster for cache scaling
-
-### Phase 5 — Platform Evolution
-- API gateway integration
-- SDK/client libraries for consuming services
-- Self-service tenant onboarding portal
-- Multi-region deployment
-- Module extraction to microservices (if scale demands)
 
 ---
 

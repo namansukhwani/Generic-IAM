@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -10,7 +10,6 @@ import redisConfig from './config/redis.config';
 import kafkaConfig from './config/kafka.config';
 
 import { DatabaseModule } from './database/database.module';
-import { TenantContextMiddleware } from './common/middleware/tenant-context.middleware';
 import { TenantTransactionInterceptor } from './common/interceptors/tenant-transaction.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CommonModule } from './common/common.module';
@@ -55,11 +54,4 @@ import { HealthModule } from './health/health.module';
     },
   ],
 })
-export class AppModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(TenantContextMiddleware)
-      .exclude({ path: 'health/(.*)', method: RequestMethod.ALL })
-      .forRoutes('*');
-  }
-}
+export class AppModule {}

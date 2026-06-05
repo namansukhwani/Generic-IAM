@@ -15,8 +15,6 @@
 5. [Multi-Tenant Isolation Strategy](#5-multi-tenant-isolation-strategy)
 6. [Scalability & Reliability](#6-scalability--reliability)
 7. [Operational Concerns](#7-operational-concerns)
-8. [Environment Configuration](#8-environment-configuration)
-9. [Docker Compose — Development](#9-docker-compose--development)
 
 ---
 
@@ -531,107 +529,6 @@ graph TB
     P1 --> KF
     P2 --> KF
     P3 --> KF
-```
-
----
-
-## 8. Environment Configuration
-
-```yaml
-# .env example
-# Application
-APP_PORT=3000
-APP_ENV=production
-APP_LOG_LEVEL=info
-
-# PostgreSQL
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=iam
-DB_USERNAME=iam_app
-DB_PASSWORD=<secure>
-DB_SSL=true
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=<secure>
-REDIS_DB=0
-
-# Kafka
-KAFKA_BROKERS=localhost:9092
-KAFKA_CLIENT_ID=iam-service
-KAFKA_GROUP_ID=iam-consumers
-
-# JWT
-JWT_SECRET=<secure-256-bit-key>
-JWT_ACCESS_TTL=900
-JWT_REFRESH_TTL=604800
-
-# SuperAdmin (bootstrap)
-SUPER_ADMIN_EMAIL=superadmin@platform.com
-SUPER_ADMIN_PASSWORD=<secure>
-
-# Impersonation
-IMPERSONATION_MAX_TTL=1800
-```
-
----
-
-## 9. Docker Compose — Development
-
-```yaml
-version: '3.8'
-services:
-  iam:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - DB_HOST=postgres
-      - REDIS_HOST=redis
-      - KAFKA_BROKERS=kafka:9092
-    depends_on:
-      - postgres
-      - redis
-      - kafka
-
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: iam
-      POSTGRES_USER: iam_app
-      POSTGRES_PASSWORD: devpassword
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    command: redis-server --requirepass devpassword
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-
-  kafka:
-    image: confluentinc/cp-kafka:7.5.0
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
-volumes:
-  pgdata:
 ```
 
 ---

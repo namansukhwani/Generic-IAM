@@ -200,13 +200,28 @@ This ensures caches are always invalidated within seconds of any permission chan
 
 ### 4.3 Service-to-Service Authentication
 
-| Option | How It Works | Pros | Cons |
-|--------|-------------|------|------|
-| **Forward user JWT only** ✅ | Microservice passes user's `Authorization: Bearer <user-jwt>` to IAM | Simplest. Single token. No extra infra. JWT validates user identity at every hop. | Can't audit which *service* called (only which user). |
-| Dual-header (Service JWT + user headers) | Service JWT in `Authorization`, user context in headers | Clear service identity for audit | Requires service accounts, credential management. Over-engineered for same-cluster. |
-| mTLS between services | Mutual TLS certificates | Strongest service identity | Certificate infrastructure, rotation complexity. Overkill. |
+**Actual Flow:** Consuming microservices integrate `@iam/nestjs-sdk`. JWT verification is handled entirely inside the SDK — no `@nestjs/passport` dependency required on the consuming service.
 
-**Decision:** Forward user JWT. Same K8s cluster = trusted network. K8s NetworkPolicies restrict traffic. Eliminates SERVICE identity type, 2 DB tables, credential management.
+#### How It Works
+
+1. Client sends `Authorization: Bearer <user-jwt>` to the consuming microservice.
+2. `JwtAuthGuard` (from SDK) intercepts the request.
+3. Guard calls `jwt.verify(token, jwtSecret)` using the `jsonwebtoken` package bundled inside the SDK.
+4. The `jwtSecret` is provided once at module initialization via `IamModule.forRoot({ jwtSecret })`.
+5. Verified payload is attached to `request.user` (contains `sub`, `tenant_id`, etc.).
+6. Downstream guards (`PermissionGuard`, `AclGuard`) read `request.user` for authz checks against IAM service.
+
+#### Consuming Service Setup
+
+```typescript
+IamModule.forRoot({
+  iamUrl: 'http://iam-service:3000',
+  redisUrl: 'redis://redis:6379',
+  jwtSecret: process.env.JWT_SECRET,   // same secret used by IAM to sign tokens
+})
+```
+
+**Decision:** Forward user JWT. SDK owns verification. Consuming services need zero Passport config — just the shared `JWT_SECRET`. Same K8s cluster = trusted network. K8s NetworkPolicies restrict traffic.
 
 ### 4.4 Permission Model
 

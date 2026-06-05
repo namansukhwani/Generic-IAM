@@ -1,19 +1,23 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import {
   Injectable,
+  CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  Inject,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import * as jwt from 'jsonwebtoken';
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
-  constructor(private reflector: Reflector) {
-    super();
-  }
+export class JwtAuthGuard implements CanActivate {
+  constructor(
+    private reflector: Reflector,
+    @Inject('JWT_SECRET') private readonly jwtSecret: string,
+  ) {}
 
-  canActivate(context: ExecutionContext) {
+  canActivate(context: ExecutionContext): boolean {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -21,13 +25,28 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (isPublic) {
       return true;
     }
-    return super.canActivate(context);
-  }
 
-  handleRequest(err: any, user: any, info: any) {
-    if (err || !user) {
-      throw err || new UnauthorizedException();
+    const request = context.switchToHttp().getRequest();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException(
+        'Missing or invalid authorization header',
+      );
     }
-    return user;
+
+    const token = authHeader.split(' ')[1];
+    try {
+      const payload = jwt.verify(token, this.jwtSecret) as any;
+
+      if (!payload || !payload.sub) {
+        throw new UnauthorizedException('Invalid token payload');
+      }
+
+      request.user = payload;
+      return true;
+    } catch (e) {
+      throw new UnauthorizedException('Invalid token');
+    }
   }
 }

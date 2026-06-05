@@ -1,5 +1,6 @@
 import { Module, Global } from '@nestjs/common';
-import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER, APP_PIPE } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard, IdentityTypeGuard } from '@iam/nestjs-sdk';
 import { IamPermissionGuard } from './guards/iam-permission.guard';
 import { IamAclGuard } from './guards/iam-acl.guard';
@@ -7,16 +8,21 @@ import { CorrelationIdInterceptor } from './interceptors/correlation-id.intercep
 import { ResponseTransformInterceptor } from './interceptors/response-transform.interceptor';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
-import { TenantValidationPipe } from './pipes/tenant-validation.pipe';
 
 import { AuthorizationModule } from '../modules/authorization/authorization.module';
-
 import { TenantModule } from '../modules/tenant/tenant.module';
 
 @Global()
 @Module({
   imports: [AuthorizationModule, TenantModule],
   providers: [
+    {
+      // JwtAuthGuard (from @iam/nestjs-sdk) injects JWT_SECRET by token rather
+      // than consuming JwtModule, so we bridge ConfigService → string token here.
+      provide: 'JWT_SECRET',
+      useFactory: (config: ConfigService) => config.get<string>('jwt.secret'),
+      inject: [ConfigService],
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
@@ -48,10 +54,6 @@ import { TenantModule } from '../modules/tenant/tenant.module';
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
-    },
-    {
-      provide: APP_PIPE,
-      useClass: TenantValidationPipe,
     },
   ],
   exports: [], // The APP_* providers automatically register globally
