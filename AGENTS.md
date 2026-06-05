@@ -24,12 +24,12 @@ Co-Authored-By: Antigravity <antigravity@deepmind.google.com>
 - **Events**: Emit audit/changed events to Kafka (e.g. `KAFKA_TOPICS.IAM_AUDIT`) using `eventProducer`.
 - **Guards**: IAM modules use `IamPermissionGuard` and `IamAclGuard` (which call `AuthorizationService`). The SDK uses `PermissionGuard` and `AclGuard` (which call `IamAuthzService`). All guards support checking effective permissions and resource ACLs dynamically.
 ## Module Status
-- `tenant`: CRUD implemented.
+- `tenant`: CRUD implemented. Includes tenant-level audit log API.
 - `user`: CRUD, user hierarchy query. Auto-assigns `MEMBER` role on creation if no `role_id` is provided.
 - `auth`: JWT strategy, cross-tenant login.
 - `rbac`: Role CRUD, permission assignment. Permissions use hierarchical dot notation (`code`) format.
 - `acl`: Resource ACL CRUD.
 - `authorization`: Centralized authz checks.
 - `super-admin`: Impersonation, tenant management.
-- `audit`: Kafka consumer, batch insertions.
+- `audit`: Kafka consumer, batch insertions, paginated query API.
 - `sdk`: Thin read-only authz client. Use `npm link` for local dev.

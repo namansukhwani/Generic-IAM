@@ -28,4 +28,10 @@ export class AuditQueryDto {
   @IsOptional()
   @IsString()
   correlation_id?: string;
+
+  @IsOptional()
+  page?: number;
+
+  @IsOptional()
+  limit?: number;
 }

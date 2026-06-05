@@ -365,11 +365,11 @@ expense
 
 ### Action Items
 
-- [ ] **11.1** Add `GET /tenants/:tenantId/audit-logs` route to [tenant.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/tenant/tenant.controller.ts) — requires `IdentityType.USER` + `audit:read` permission
-- [ ] **11.2** Guard endpoint: verify requesting user's `tenant_id` matches `:tenantId` param (prevent cross-tenant access). Super-admin bypasses
-- [ ] **11.3** Add `AuditLogQueryDto` with filters: `event_type`, `actor_id`, `resource_type`, `date_from`, `date_to`, `page`, `limit`
-- [ ] **11.4** Call existing [audit.service.ts](file:///Users/naman.sukhwani/IAM/src/modules/audit/audit.service.ts) `queryLogs()` — pass `tenant_id` filter from path param, not query
-- [ ] **11.5** Add pagination support to `AuditService.queryLogs()` — currently hard-capped at 100
+- [x] **11.1** Add `GET /tenants/:tenantId/audit-logs` route to [tenant.controller.ts](file:///Users/naman.sukhwani/IAM/src/modules/tenant/tenant.controller.ts) — requires `IdentityType.USER` + `audit:read` permission
+- [x] **11.2** Guard endpoint: verify requesting user's `tenant_id` matches `:tenantId` param (prevent cross-tenant access). Super-admin bypasses
+- [x] **11.3** Add `AuditLogQueryDto` with filters: `event_type`, `actor_id`, `resource_type`, `date_from`, `date_to`, `page`, `limit`
+- [x] **11.4** Call existing [audit.service.ts](file:///Users/naman.sukhwani/IAM/src/modules/audit/audit.service.ts) `queryLogs()` — pass `tenant_id` filter from path param, not query
+- [x] **11.5** Add pagination support to `AuditService.queryLogs()` — currently hard-capped at 100
 
 ---
 

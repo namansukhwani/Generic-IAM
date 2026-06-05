@@ -6,6 +6,7 @@ import { TenantEntity } from './entities/tenant.entity';
 import { UserEntity } from '../user/entities/user.entity';
 import { RoleEntity } from '../rbac/entities/role.entity';
 import { UserRoleEntity } from '../rbac/entities/user-role.entity';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { UserRoleEntity } from '../rbac/entities/user-role.entity';
       RoleEntity,
       UserRoleEntity,
     ]),
+    AuditModule,
   ],
   controllers: [TenantController],
   providers: [TenantService],

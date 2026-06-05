@@ -63,11 +63,15 @@ export class AuditService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async queryLogs(query: AuditQueryDto): Promise<AuditLogEntity[]> {
+  async queryLogs(query: AuditQueryDto): Promise<{ data: AuditLogEntity[]; total: number; page: number; limit: number }> {
+    const page = query.page || 1;
+    const limit = query.limit || 100;
+    
     const qb = this.auditRepository
       .createQueryBuilder('audit')
       .orderBy('audit.created_at', 'DESC')
-      .limit(100);
+      .skip((page - 1) * limit)
+      .take(limit);
 
     if (query.tenant_id) {
       qb.andWhere('audit.tenant_id = :tenantId', { tenantId: query.tenant_id });
@@ -99,6 +103,7 @@ export class AuditService implements OnModuleInit, OnModuleDestroy {
       qb.andWhere('audit.created_at <= :dateTo', { dateTo: query.date_to });
     }
 
-    return qb.getMany();
+    const [data, total] = await qb.getManyAndCount();
+    return { data, total, page, limit };
   }
 }

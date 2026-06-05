@@ -20,11 +20,18 @@ import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.co
 import { CurrentUser  } from '@iam/nestjs-sdk';
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 
+import { AuditService } from '../audit/audit.service';
+import { AuditQueryDto } from '../audit/dto/audit-query.dto';
+import { ForbiddenException } from '@nestjs/common';
+
 @ApiTags('Tenants')
 @ApiBearerAuth()
 @Controller('tenants')
 export class TenantController {
-  constructor(private readonly tenantService: TenantService) {}
+  constructor(
+    private readonly tenantService: TenantService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new tenant with initial admin user' })
@@ -76,5 +83,22 @@ export class TenantController {
   ) {
     await this.tenantService.deactivateTenant(id, user.sub);
     return { success: true };
+  }
+
+  @Get(':id/audit-logs')
+  @ApiOperation({ summary: 'Get audit logs for a tenant' })
+  @IdentityTypes(IdentityType.SUPER_ADMIN, IdentityType.USER)
+  @RequirePermissions(SYSTEM_PERMISSIONS.AUDIT.READ)
+  async getAuditLogs(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: AuditQueryDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (user.identity_type !== IdentityType.SUPER_ADMIN && user.tenant_id !== id) {
+      throw new ForbiddenException('Cannot access audit logs of another tenant');
+    }
+
+    query.tenant_id = id;
+    return this.auditService.queryLogs(query);
   }
 }

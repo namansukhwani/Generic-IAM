@@ -76,7 +76,7 @@ export class SuperAdminService {
     return this.userRepository.find({ where: { tenant_id: tenantId } });
   }
 
-  async getAuditLogs(filters: AuditQueryDto): Promise<any[]> {
+  async getAuditLogs(filters: AuditQueryDto): Promise<any> {
     return this.auditService.queryLogs(filters);
   }
 }
