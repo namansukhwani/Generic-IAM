@@ -16,7 +16,8 @@ import { CreateAclDto } from './dto/create-acl.dto';
 import { CheckAclDto } from './dto/check-acl.dto';
 import { AclQueryDto } from './dto/acl-query.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from '@iam/nestjs-sdk';
+import { RequirePermissions, CurrentUser } from '@iam/nestjs-sdk';
+import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.constant';
 
 @Controller('acl')
 @UseGuards(AuthGuard('jwt'))
@@ -24,16 +25,19 @@ export class AclController {
   constructor(private readonly aclService: AclService) {}
 
   @Post()
+  @RequirePermissions(SYSTEM_PERMISSIONS.ACL.ALL)
   async createAcl(@Body() dto: CreateAclDto, @CurrentUser() user: JwtPayload) {
     return this.aclService.createAcl(user.tenant_id as string, dto, user.sub);
   }
 
   @Get()
+  @RequirePermissions(SYSTEM_PERMISSIONS.ACL.ALL)
   async getAcls(@Query() query: AclQueryDto, @CurrentUser() user: JwtPayload) {
     return this.aclService.findAllAcls(user.tenant_id as string, query);
   }
 
   @Delete(':id')
+  @RequirePermissions(SYSTEM_PERMISSIONS.ACL.ALL)
   async deleteAcl(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     await this.aclService.deleteAcl(id, user.tenant_id as string, user.sub);
     return { success: true };

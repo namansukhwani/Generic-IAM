@@ -33,3 +33,44 @@ Co-Authored-By: Antigravity <antigravity@deepmind.google.com>
 - `super-admin`: Impersonation, tenant management.
 - `audit`: Kafka consumer, batch insertions, paginated query API.
 - `sdk`: Thin read-only authz client. Use `npm link` for local dev.
+
+## Docker Compose — Full Stack
+
+### One-command local start
+```bash
+docker compose up --build
+```
+This single command:
+1. Starts PostgreSQL, Redis, ZooKeeper, and Kafka (with health checks).
+2. Creates all Kafka topics (`kafka-init`).
+3. Runs TypeORM migrations and seeds the DB (`db-init`).
+4. Starts the IAM service on **port 3000** (waits for `db-init` to finish).
+5. Starts the IAM Showcase on **port 3020** (waits for IAM to become healthy).
+
+### Key files
+| File | Purpose |
+|------|---------|
+| `docker-compose.yml` | Orchestrates all services |
+| `.env.docker` | Environment variables for all containers (Docker-internal hostnames) |
+| `Dockerfile` | Multi-stage build for IAM service (`builder`, `development`, `runner`) |
+| `iam-showcase/Dockerfile` | Multi-stage build for showcase service |
+
+### Environment
+Container networking replaces `localhost` references:
+- DB: `postgres:5432`
+- Redis: `redis:6379`
+- Kafka: `kafka:29092` (internal listener)
+- IAM → Showcase: `http://iam:3000`
+
+Edit `.env.docker` to override any value without touching application code.
+
+### Tear down
+```bash
+docker compose down          # stop containers
+docker compose down -v       # also wipe volumes (DB + Redis data)
+```
+
+### Rebuild a single service
+```bash
+docker compose build iam && docker compose up -d iam
+```

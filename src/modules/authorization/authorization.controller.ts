@@ -2,8 +2,10 @@ import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthorizationService } from './authorization.service';
 import { CheckAuthzDto } from './dto/check-authz.dto';
 import { CheckAuthzBatchDto } from './dto/check-authz-batch.dto';
+import { Public } from '@iam/nestjs-sdk';
 
 @Controller('authorization')
+@Public()
 export class AuthorizationController {
   constructor(private readonly authorizationService: AuthorizationService) {}
 

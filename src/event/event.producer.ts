@@ -1,6 +1,7 @@
 import {
   Injectable,
   Inject,
+  Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
@@ -19,28 +20,43 @@ export interface BaseEvent {
 
 @Injectable()
 export class EventProducer implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(EventProducer.name);
+
   constructor(@Inject('KAFKA_CLIENT') private readonly client: ClientKafka) {}
 
   async onModuleInit() {
-    // Only if we need to subscribe to replies, which we don't for fire-and-forget
-    // but we need to connect the producer. Nest does this lazily on first emit,
-    // but good practice to connect here.
-    await this.client.connect();
+    try {
+      await this.client.connect();
+    } catch (err) {
+      // A Kafka outage must not crash the application — events are best-effort.
+      // KafkaJS will continue retrying in the background.
+      this.logger.warn(
+        `Kafka broker unavailable on startup — audit events will be buffered until reconnect. Reason: ${(err as Error).message}`,
+      );
+    }
   }
 
   async onModuleDestroy() {
-    await this.client.close();
+    try {
+      await this.client.close();
+    } catch {
+      // Ignore close errors during shutdown
+    }
   }
 
   emit(topic: string, event: BaseEvent): void {
-    const key = `${event.tenant_id || 'system'}:${event.user_id || event.actor_id || 'unknown'}`;
+    const key = `${event.tenant_id ?? 'system'}:${event.user_id ?? event.actor_id ?? 'unknown'}`;
     const message = {
       event_id: uuidv4(),
       timestamp: new Date().toISOString(),
       ...event,
     };
 
-    // Fire and forget using emit
-    this.client.emit(topic, { key, value: message });
+    this.client.emit(topic, { key, value: message }).subscribe({
+      error: (err: Error) =>
+        this.logger.warn(
+          `Failed to emit event ${event.event_type} to ${topic}: ${err.message}`,
+        ),
+    });
   }
 }

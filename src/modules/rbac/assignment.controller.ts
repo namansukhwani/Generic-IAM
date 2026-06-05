@@ -14,8 +14,9 @@ import { OverrideService } from './override.service';
 
 import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import { CreateOverrideDto } from './dto/create-override.dto';
+import { RequirePermissions, CurrentUser } from '@iam/nestjs-sdk';
+import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.constant';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from '@iam/nestjs-sdk';
 
 @Controller('users/:userId')
 @UseGuards(AuthGuard('jwt'))
@@ -28,6 +29,7 @@ export class AssignmentController {
   // Roles
 
   @Patch('roles')
+  @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.ASSIGN)
   async updateUserRoles(
     @Param('userId') targetUserId: string,
     @Body() dto: UpdateUserRolesDto,
@@ -43,6 +45,7 @@ export class AssignmentController {
   }
 
   @Get('roles')
+  @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.READ)
   async getUserRoles(
     @Param('userId') targetUserId: string,
     @CurrentUser() user: JwtPayload,
@@ -56,6 +59,7 @@ export class AssignmentController {
   // Overrides
 
   @Post('permission-overrides')
+  @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.ASSIGN)
   async addOverride(
     @Param('userId') targetUserId: string,
     @Body() dto: CreateOverrideDto,
@@ -70,6 +74,7 @@ export class AssignmentController {
   }
 
   @Get('permission-overrides')
+  @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.READ)
   async getOverrides(
     @Param('userId') targetUserId: string,
     @CurrentUser() user: JwtPayload,
@@ -81,6 +86,7 @@ export class AssignmentController {
   }
 
   @Delete('permission-overrides/:overrideId')
+  @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.ASSIGN)
   async removeOverride(
     @Param('userId') targetUserId: string,
     @Param('overrideId') overrideId: string,
@@ -96,6 +102,7 @@ export class AssignmentController {
   }
 
   @Get('effective-permissions')
+  @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.READ)
   async getEffectivePermissions(
     @Param('userId') targetUserId: string,
     @CurrentUser() user: JwtPayload,

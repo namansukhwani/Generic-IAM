@@ -106,13 +106,18 @@ export class AuthService {
   }
 
   async refresh(dto: RefreshTokenDto): Promise<TokenResponseDto> {
-    const hashedTokens = await this.refreshTokenRepository.find();
+    const [userIdPrefix, actualToken] = dto.refresh_token.split('.');
+    if (!userIdPrefix || !actualToken) {
+      throw new UnauthorizedException('Invalid refresh token format');
+    }
+
+    const hashedTokens = await this.refreshTokenRepository.find({ where: { user_id: userIdPrefix } });
     let validToken: RefreshTokenEntity | undefined;
     let userId: string = '';
 
     // Find the matching hash
     for (const token of hashedTokens) {
-      if (await comparePassword(dto.refresh_token, token.token_hash)) {
+      if (await comparePassword(actualToken, token.token_hash)) {
         validToken = token;
         userId = token.user_id;
         break;
@@ -198,7 +203,7 @@ export class AuthService {
 
     return {
       access_token,
-      refresh_token: plainRefreshToken,
+      refresh_token: `${user.id}.${plainRefreshToken}`,
       expires_in: accessTtl,
     };
   }
@@ -220,10 +225,13 @@ export class AuthService {
     });
 
     const plainRefreshToken = crypto.randomBytes(40).toString('hex');
-
+    // Super admins are not stored in the users table, so we cannot persist
+    // a refresh token with a FK → users.id. Return a prefixed opaque token
+    // that is accepted by refresh() but will not match any DB row, causing
+    // a graceful "Invalid refresh token" error rather than a FK violation.
     return {
       access_token,
-      refresh_token: plainRefreshToken,
+      refresh_token: `${superAdmin.id}.${plainRefreshToken}`,
       expires_in: accessTtl,
     };
   }

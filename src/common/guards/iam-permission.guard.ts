@@ -16,18 +16,14 @@ import { RequestContext } from '../interfaces/request-context.interface';
 @Injectable()
 export class IamPermissionGuard extends PermissionGuard {
   constructor(
-    protected reflector: Reflector,
+    reflector: Reflector,
     private readonly authorizationService: AuthorizationService,
   ) {
     super(reflector, null as unknown as IamAuthzService);
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const reflector = this.reflector || (this as any).reflector;
-    if (!reflector) {
-      return true;
-    }
-    const isPublic = reflector.getAllAndOverride<boolean>('isPublic', [
+    const isPublic = this.reflector.getAllAndOverride<boolean>('isPublic', [
       context.getHandler(),
       context.getClass(),
     ]);
@@ -35,7 +31,7 @@ export class IamPermissionGuard extends PermissionGuard {
       return true;
     }
 
-    const requiredPermissions = reflector.getAllAndOverride<string[]>(
+    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
     );

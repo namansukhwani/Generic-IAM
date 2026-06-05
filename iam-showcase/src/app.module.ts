@@ -7,9 +7,9 @@ import { AppService } from './app.service';
 @Module({
   imports: [
     IamModule.forRoot({
-      iamUrl: 'http://localhost:3000',
-      redisUrl: 'redis://localhost:6379',
-      jwtSecret: 'your_jwt_secret',
+      iamUrl: process.env.IAM_URL ?? 'http://localhost:3000',
+      redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',
+      jwtSecret: process.env.JWT_SECRET ?? 'your_jwt_secret',
     }),
   ],
   controllers: [AppController],

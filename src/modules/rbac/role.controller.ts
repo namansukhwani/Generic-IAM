@@ -12,7 +12,8 @@ import {
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from '@iam/nestjs-sdk';
+import { RequirePermissions, CurrentUser } from '@iam/nestjs-sdk';
+import { SYSTEM_PERMISSIONS } from '../../common/constants/system-permissions.constant';
 
 @Controller('roles')
 @UseGuards(AuthGuard('jwt'))
@@ -20,7 +21,7 @@ export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
   @Post()
-  // @RequireTenantAdmin() -> To be implemented fully in Phase 6 with RBAC guard, but assuming logic allows it or manually checked
+  @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.WRITE)
   async createRole(
     @Body() dto: CreateRoleDto,
     @CurrentUser() user: JwtPayload,
@@ -35,16 +36,19 @@ export class RoleController {
   }
 
   @Get()
+  @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.READ)
   async getRoles(@CurrentUser() user: JwtPayload) {
     return this.roleService.findAllForTenant(user.tenant_id as string);
   }
 
   @Get(':id')
+  @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.READ)
   async getRole(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.roleService.findOneForTenant(id, user.tenant_id as string);
   }
 
   @Patch(':id')
+  @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.WRITE)
   async updateRole(
     @Param('id') id: string,
     @Body() dto: Partial<CreateRoleDto>,
@@ -59,6 +63,7 @@ export class RoleController {
   }
 
   @Delete(':id')
+  @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.WRITE)
   async deleteRole(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     await this.roleService.deleteCustomRole(
       id,

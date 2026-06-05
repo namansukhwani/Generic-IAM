@@ -22,7 +22,7 @@ import { CurrentUser } from '@iam/nestjs-sdk';
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 
 import { AuthorizationService } from '../authorization/authorization.service';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -90,7 +90,7 @@ export class UserController {
     }
     const target = await this.userService.findOne({ where: { id } });
     if (target.tenant_id !== user.tenant_id) {
-      throw new Error('Not found'); // Keep generic to avoid leaking info
+      throw new NotFoundException('Not found'); // Keep generic to avoid leaking info
     }
     return new UserResponseDto(target);
   }
@@ -103,6 +103,16 @@ export class UserController {
     @Body() updateUserDto: UpdateUserDto,
     @CurrentUser() user: JwtPayload,
   ) {
+    if (user.sub !== id) {
+      const authz = await this.authzService.check({
+        tenant_id: user.tenant_id as string,
+        user_id: user.sub,
+        permission: SYSTEM_PERMISSIONS.USER.WRITE,
+      });
+      if (!authz.allowed) {
+        throw new ForbiddenException('Insufficient permissions to update other users');
+      }
+    }
     const updated = await this.userService.updateUser(
       id,
       updateUserDto,

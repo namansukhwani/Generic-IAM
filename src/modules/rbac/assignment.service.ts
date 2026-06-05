@@ -27,13 +27,22 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
     super(defaultRepository, request);
   }
 
+  // Mirrors BaseService.repository: participates in the interceptor's
+  // transaction so uncommitted saves within the same request are visible.
+  private get userRepo(): Repository<UserEntity> {
+    if (this.request?.entityManager) {
+      return this.request.entityManager.getRepository(UserEntity);
+    }
+    return this.userRepository;
+  }
+
   async assignToUser(
     userId: string,
     tenantId: string,
     dto: AssignRoleDto,
     actorId: string,
   ): Promise<UserRoleEntity> {
-    const user = await this.userRepository.findOne({
+    const user = await this.userRepo.findOne({
       where: { id: userId, tenant_id: tenantId },
     });
     if (!user) throw new NotFoundException('User not found in tenant');
@@ -85,7 +94,7 @@ export class AssignmentService extends BaseService<UserRoleEntity> {
     dto: UpdateUserRolesDto,
     actorId: string,
   ): Promise<void> {
-    const user = await this.userRepository.findOne({
+    const user = await this.userRepo.findOne({
       where: { id: userId, tenant_id: tenantId },
     });
     if (!user) throw new NotFoundException('User not found in tenant');

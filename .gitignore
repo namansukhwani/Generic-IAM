@@ -51,5 +51,3 @@ lerna-debug.log*
 tpa-app-schema
 scripts
 
-docker-compose.yml
-redis.conf

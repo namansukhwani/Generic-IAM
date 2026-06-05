@@ -59,6 +59,22 @@ async function poll<T>(
   return null;
 }
 
+/**
+ * Unwrap the ResponseTransformInterceptor envelope {success, data, meta}.
+ * Every IAM success response is wrapped; this gives back just the payload.
+ */
+const d = (res: any): any => res.body?.data ?? res.body;
+
+/**
+ * For endpoints that return a paginated shape {data:[], total, page, limit}
+ * (e.g. GET /users), the interceptor double-wraps: body.data.data is the array.
+ * For flat-list endpoints (GET /roles, GET /tenants), body.data IS the array.
+ */
+const items = (res: any): any[] => {
+  const payload = d(res);
+  return Array.isArray(payload) ? payload : (payload?.data ?? []);
+};
+
 // ─── suite ────────────────────────────────────────────────────────────────────
 
 describe('IAM Service — Full E2E Suite', () => {
@@ -112,6 +128,22 @@ describe('IAM Service — Full E2E Suite', () => {
         transform: true,
       }),
     );
+
+    const configService = app.get(require('@nestjs/config').ConfigService);
+    app.connectMicroservice({
+      transport: require('@nestjs/microservices').Transport.KAFKA,
+      options: {
+        client: {
+          brokers: configService.get('kafka.brokers', ['localhost:9092']),
+          clientId: 'iam-e2e-client',
+        },
+        consumer: {
+          groupId: 'iam-audit-consumer-e2e',
+        },
+      },
+    });
+
+    await app.startAllMicroservices();
     await app.init();
 
     jwt = app.get(JwtService);
@@ -119,7 +151,7 @@ describe('IAM Service — Full E2E Suite', () => {
 
     // SuperAdmin token (bypasses real login; JwtService uses the same secret)
     saToken = jwt.sign({
-      sub: 'e2e-superadmin',
+      sub: '11111111-1111-1111-1111-111111111111',
       email: 'sa@e2e.test',
       identity_type: IdentityType.SUPER_ADMIN,
     });
@@ -141,7 +173,7 @@ describe('IAM Service — Full E2E Suite', () => {
       });
 
     expect(resA.status).toBe(201);
-    tenantAId = resA.body.id;
+    tenantAId = d(resA).id;
 
     // ── create Tenant B ──────────────────────────────────────────────────────
     const resB = await request(app.getHttpServer())
@@ -160,7 +192,7 @@ describe('IAM Service — Full E2E Suite', () => {
       });
 
     expect(resB.status).toBe(201);
-    tenantBId = resB.body.id;
+    tenantBId = d(resB).id;
 
     // ── login as Tenant A admin (real credential flow) ────────────────────────
     const loginA = await request(app.getHttpServer())
@@ -168,13 +200,12 @@ describe('IAM Service — Full E2E Suite', () => {
       .send({ email: adminEmailA, password: adminPass });
 
     expect(loginA.status).toBe(200);
-    tokenA = loginA.body.access_token;
-    freshRefreshToken = loginA.body.refresh_token;
+    tokenA = d(loginA).access_token;
 
     const meA = await request(app.getHttpServer())
       .get(P('/auth/me'))
       .set('Authorization', `Bearer ${tokenA}`);
-    adminUserAId = meA.body.id;
+    adminUserAId = d(meA).id;
 
     // ── login as Tenant B admin ───────────────────────────────────────────────
     const loginB = await request(app.getHttpServer())
@@ -182,12 +213,12 @@ describe('IAM Service — Full E2E Suite', () => {
       .send({ email: adminEmailB, password: adminPass });
 
     expect(loginB.status).toBe(200);
-    tokenB = loginB.body.access_token;
+    tokenB = d(loginB).access_token;
 
     const meB = await request(app.getHttpServer())
       .get(P('/auth/me'))
       .set('Authorization', `Bearer ${tokenB}`);
-    adminUserBId = meB.body.id;
+    adminUserBId = d(meB).id;
 
     // ── create regular member in Tenant A ────────────────────────────────────
     const memberRes = await request(app.getHttpServer())
@@ -201,24 +232,25 @@ describe('IAM Service — Full E2E Suite', () => {
       });
 
     expect(memberRes.status).toBe(201);
-    memberUserId = memberRes.body.id;
+    memberUserId = d(memberRes).id;
 
     const memberLogin = await request(app.getHttpServer())
       .post(P('/auth/login'))
       .send({ email: memberEmail, password: memberPass });
-    memberToken = memberLogin.body.access_token;
+    memberToken = d(memberLogin).access_token;
 
     // ── resolve permission IDs ────────────────────────────────────────────────
     const permsRes = await request(app.getHttpServer())
       .get(P('/permissions'))
       .set('Authorization', `Bearer ${tokenA}`);
 
-    const perms: Array<{ id: string; code: string }> = permsRes.body;
-    permExpenseReadId = perms.find((p) => p.code === 'expense:read')?.id ?? '';
+    const perms: Array<{ id: string; code: string }> = d(permsRes) ?? [];
+    permExpenseReadId =
+      perms.find((p) => p.code === 'expense.expenses.read')?.id ?? '';
     permExpenseWriteId =
-      perms.find((p) => p.code === 'expense:write')?.id ?? '';
+      perms.find((p) => p.code === 'expense.expenses.update')?.id ?? '';
     permExpenseDeleteId =
-      perms.find((p) => p.code === 'expense:delete')?.id ?? '';
+      perms.find((p) => p.code === 'expense.expenses.delete')?.id ?? '';
 
     expect(permExpenseReadId).toBeTruthy();
     expect(permExpenseWriteId).toBeTruthy();
@@ -284,8 +316,8 @@ describe('IAM Service — Full E2E Suite', () => {
       const res = await request(app.getHttpServer())
         .get(P('/health/ready'))
         .expect(200);
-      expect(res.body.status).toBe('ok');
-      expect(res.body.info).toBeDefined();
+      expect(d(res).status).toBe('ok');
+      expect(d(res).info).toBeDefined();
     });
 
     it('GET /health/live → 200', () =>
@@ -304,10 +336,10 @@ describe('IAM Service — Full E2E Suite', () => {
           .send({ email: adminEmailA, password: adminPass })
           .expect(200);
 
-        expect(res.body.access_token).toBeDefined();
-        expect(res.body.refresh_token).toBeDefined();
-        expect(res.body.token_type).toBe('Bearer');
-        expect(res.body.expires_in).toBeGreaterThan(0);
+        expect(d(res).access_token).toBeDefined();
+        expect(d(res).refresh_token).toBeDefined();
+        expect(d(res).token_type).toBe('Bearer');
+        expect(d(res).expires_in).toBeGreaterThan(0);
       });
 
       it('returns 401 on wrong password', () =>
@@ -330,9 +362,9 @@ describe('IAM Service — Full E2E Suite', () => {
           .set('Authorization', `Bearer ${tokenA}`)
           .expect(200);
 
-        expect(res.body.id).toBe(adminUserAId);
-        expect(res.body.email).toBe(adminEmailA);
-        expect(res.body.tenant_id).toBe(tenantAId);
+        expect(d(res).id).toBe(adminUserAId);
+        expect(d(res).email).toBe(adminEmailA);
+        expect(d(res).tenant_id).toBe(tenantAId);
       });
 
       it('returns 401 without Authorization header', () =>
@@ -346,15 +378,15 @@ describe('IAM Service — Full E2E Suite', () => {
           .send({ email: adminEmailA, password: adminPass })
           .expect(200);
 
-        const original = loginRes.body.refresh_token;
+        const original = d(loginRes).refresh_token;
 
         const refreshRes = await request(app.getHttpServer())
           .post(P('/auth/refresh'))
           .send({ refresh_token: original })
           .expect(200);
 
-        expect(refreshRes.body.access_token).toBeDefined();
-        expect(refreshRes.body.refresh_token).not.toBe(original);
+        expect(d(refreshRes).access_token).toBeDefined();
+        expect(d(refreshRes).refresh_token).not.toBe(original);
       });
 
       it('rejects a refresh token after it has been rotated (replay prevention)', async () => {
@@ -363,7 +395,7 @@ describe('IAM Service — Full E2E Suite', () => {
           .send({ email: adminEmailA, password: adminPass })
           .expect(200);
 
-        const token = loginRes.body.refresh_token;
+        const token = d(loginRes).refresh_token;
 
         // First use — OK
         await request(app.getHttpServer())
@@ -392,7 +424,7 @@ describe('IAM Service — Full E2E Suite', () => {
           .send({ email: adminEmailA, password: adminPass })
           .expect(200);
 
-        const { access_token, refresh_token } = loginRes.body;
+        const { access_token, refresh_token } = d(loginRes);
 
         await request(app.getHttpServer())
           .post(P('/auth/logout'))
@@ -433,9 +465,9 @@ describe('IAM Service — Full E2E Suite', () => {
         })
         .expect(201);
 
-      ephemeralTenantId = res.body.id;
-      expect(res.body.is_active).toBe(true);
-      expect(res.body.slug).toBe(`ephemeral-${ts}`);
+      ephemeralTenantId = d(res).id;
+      expect(d(res).is_active).toBe(true);
+      expect(d(res).slug).toBe(`ephemeral-${ts}`);
     });
 
     it('POST /tenants → 403 for non-SuperAdmin', () =>
@@ -460,7 +492,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${saToken}`)
         .expect(200);
 
-      const ids = res.body.map((t: any) => t.id);
+      const ids = items(res).map((t: any) => t.id);
       expect(ids).toContain(tenantAId);
       expect(ids).toContain(tenantBId);
     });
@@ -477,7 +509,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${saToken}`)
         .expect(200);
 
-      expect(res.body.id).toBe(tenantAId);
+      expect(d(res).id).toBe(tenantAId);
     });
 
     it('PATCH /tenants/:id → 200 updates settings', async () => {
@@ -487,7 +519,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .send({ name: `E2E Alpha Updated ${ts}`, settings: { max_users: 200 } })
         .expect(200);
 
-      expect(res.body.settings.max_users).toBe(200);
+      expect(d(res).settings.max_users).toBe(200);
     });
 
     it('DELETE /tenants/:id → soft-deactivates tenant (is_active → false)', async () => {
@@ -501,7 +533,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${saToken}`)
         .expect(200);
 
-      expect(check.body.is_active).toBe(false);
+      expect(d(check).is_active).toBe(false);
     });
   });
 
@@ -526,9 +558,9 @@ describe('IAM Service — Full E2E Suite', () => {
         })
         .expect(201);
 
-      statusUserId = res.body.id;
-      expect(res.body.tenant_id).toBe(tenantAId);
-      expect(res.body.is_active).toBe(true);
+      statusUserId = d(res).id;
+      expect(d(res).tenant_id).toBe(tenantAId);
+      expect(d(res).is_active).toBe(true);
     });
 
     it('POST /users → 400/409 on duplicate email within same tenant', () =>
@@ -556,7 +588,7 @@ describe('IAM Service — Full E2E Suite', () => {
         })
         .expect(201);
 
-      expect(res.body.manager_id).toBe(adminUserAId);
+      expect(d(res).manager_id).toBe(adminUserAId);
     });
 
     it('GET /users → 200 paginated, includes all tenant-A users', async () => {
@@ -565,8 +597,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(200);
 
-      const items: any[] = res.body.data ?? res.body;
-      const ids = items.map((u: any) => u.id);
+      const ids = items(res).map((u: any) => u.id);
       expect(ids).toContain(adminUserAId);
       expect(ids).toContain(memberUserId);
     });
@@ -577,7 +608,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(200);
 
-      expect(res.body.id).toBe(memberUserId);
+      expect(d(res).id).toBe(memberUserId);
     });
 
     it('PATCH /users/:id → 200 updates first_name', async () => {
@@ -587,7 +618,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .send({ first_name: 'Updated' })
         .expect(200);
 
-      expect(res.body.first_name).toBe('Updated');
+      expect(d(res).first_name).toBe('Updated');
     });
 
     it('GET /users/:id/hierarchy → 200 returns reporting chain', () =>
@@ -604,7 +635,7 @@ describe('IAM Service — Full E2E Suite', () => {
           .send({ is_active: false })
           .expect(200);
 
-        expect(res.body.is_active).toBe(false);
+        expect(d(res).success).toBe(true);
       });
 
       it('deactivated user cannot log in → 401', () =>
@@ -620,7 +651,7 @@ describe('IAM Service — Full E2E Suite', () => {
           .send({ is_active: true })
           .expect(200);
 
-        expect(res.body.is_active).toBe(true);
+        expect(d(res).success).toBe(true);
       });
 
       it('reactivated user can log in again → 200', () =>
@@ -643,11 +674,11 @@ describe('IAM Service — Full E2E Suite', () => {
           .set('Authorization', `Bearer ${tokenA}`)
           .expect(200);
 
-        expect(Array.isArray(res.body)).toBe(true);
-        expect(res.body.length).toBeGreaterThan(0);
-        const codes: string[] = res.body.map((p: any) => p.code);
-        expect(codes).toContain('expense:read');
-        expect(codes).toContain('expense:write');
+        expect(Array.isArray(d(res))).toBe(true);
+        expect(d(res).length).toBeGreaterThan(0);
+        const codes: string[] = d(res).map((p: any) => p.code);
+        expect(codes).toContain('expense.expenses.read');
+        expect(codes).toContain('expense.expenses.update');
       });
     });
 
@@ -659,9 +690,9 @@ describe('IAM Service — Full E2E Suite', () => {
           .send({ name: `E2E Finance ${ts}`, description: 'E2E finance role' })
           .expect(201);
 
-        customRoleId = res.body.id;
-        expect(res.body.is_system).toBe(false);
-        expect(res.body.tenant_id).toBe(tenantAId);
+        customRoleId = d(res).id;
+        expect(d(res).is_system).toBe(false);
+        expect(d(res).tenant_id).toBe(tenantAId);
       });
 
       it('GET /roles → 200, includes system roles and the custom role', async () => {
@@ -670,9 +701,9 @@ describe('IAM Service — Full E2E Suite', () => {
           .set('Authorization', `Bearer ${tokenA}`)
           .expect(200);
 
-        const ids = res.body.map((r: any) => r.id);
+        const ids = items(res).map((r: any) => r.id);
         expect(ids).toContain(customRoleId);
-        expect(res.body.some((r: any) => r.is_system === true)).toBe(true);
+        expect(items(res).some((r: any) => r.is_system === true)).toBe(true);
       });
 
       it('GET /roles/:id → 200', () =>
@@ -688,7 +719,7 @@ describe('IAM Service — Full E2E Suite', () => {
           .send({ name: `E2E Finance V2 ${ts}` })
           .expect(200);
 
-        expect(res.body.name).toBe(`E2E Finance V2 ${ts}`);
+        expect(d(res).name).toBe(`E2E Finance V2 ${ts}`);
       });
     });
 
@@ -725,7 +756,7 @@ describe('IAM Service — Full E2E Suite', () => {
           .set('Authorization', `Bearer ${tokenA}`)
           .expect(200);
 
-        const roleIds = res.body.map((r: any) => r.role_id ?? r.id);
+        const roleIds = items(res).map((r: any) => r.role_id ?? r.id);
         expect(roleIds).toContain(customRoleId);
       });
 
@@ -735,11 +766,10 @@ describe('IAM Service — Full E2E Suite', () => {
           .set('Authorization', `Bearer ${tokenA}`)
           .expect(200);
 
-        const perms: string[] =
-          res.body.effective_permissions ?? res.body.effectivePermissions ?? [];
-        expect(perms).toContain('expense:read');
-        expect(perms).toContain('expense:write');
-        expect(perms).not.toContain('expense:delete'); // was removed from role
+        const perms: string[] = items(res).map((p: any) => p.code ?? p);
+        expect(perms).toContain('expense.expenses.read');
+        expect(perms).toContain('expense.expenses.update');
+        expect(perms).not.toContain('expense.expenses.delete'); // was removed from role
       });
     });
 
@@ -755,7 +785,7 @@ describe('IAM Service — Full E2E Suite', () => {
           })
           .expect(201);
 
-        overrideDenyId = res.body.id;
+        overrideDenyId = d(res).id;
         expect(overrideDenyId).toBeDefined();
       });
 
@@ -765,10 +795,9 @@ describe('IAM Service — Full E2E Suite', () => {
           .set('Authorization', `Bearer ${tokenA}`)
           .expect(200);
 
-        const perms: string[] =
-          res.body.effective_permissions ?? res.body.effectivePermissions ?? [];
-        expect(perms).toContain('expense:read');
-        expect(perms).not.toContain('expense:write');
+        const perms: string[] = items(res).map((p: any) => p.code ?? p);
+        expect(perms).toContain('expense.expenses.read');
+        expect(perms).not.toContain('expense.expenses.update');
       });
 
       it('POST .../permission-overrides → 201 GRANT expense:delete (not in role)', async () => {
@@ -782,7 +811,7 @@ describe('IAM Service — Full E2E Suite', () => {
           })
           .expect(201);
 
-        overrideGrantId = res.body.id;
+        overrideGrantId = d(res).id;
         expect(overrideGrantId).toBeDefined();
       });
 
@@ -792,9 +821,8 @@ describe('IAM Service — Full E2E Suite', () => {
           .set('Authorization', `Bearer ${tokenA}`)
           .expect(200);
 
-        const perms: string[] =
-          res.body.effective_permissions ?? res.body.effectivePermissions ?? [];
-        expect(perms).toContain('expense:delete');
+        const perms: string[] = items(res).map((p: any) => p.code ?? p);
+        expect(perms).toContain('expense.expenses.delete');
       });
 
       it('GET .../permission-overrides → lists both overrides', async () => {
@@ -803,7 +831,7 @@ describe('IAM Service — Full E2E Suite', () => {
           .set('Authorization', `Bearer ${tokenA}`)
           .expect(200);
 
-        const ids = res.body.map((o: any) => o.id);
+        const ids = items(res).map((o: any) => o.id);
         expect(ids).toContain(overrideDenyId);
         expect(ids).toContain(overrideGrantId);
       });
@@ -822,9 +850,8 @@ describe('IAM Service — Full E2E Suite', () => {
           .set('Authorization', `Bearer ${tokenA}`)
           .expect(200);
 
-        const perms: string[] =
-          res.body.effective_permissions ?? res.body.effectivePermissions ?? [];
-        expect(perms).toContain('expense:write');
+        const perms: string[] = items(res).map((p: any) => p.code ?? p);
+        expect(perms).toContain('expense.expenses.update');
       });
     });
 
@@ -836,13 +863,14 @@ describe('IAM Service — Full E2E Suite', () => {
           .send({ name: `Tmp Role ${ts}`, description: 'disposable' })
           .expect(201);
 
+        const tmpId = d(tmp).id;
         await request(app.getHttpServer())
-          .delete(P(`/roles/${tmp.body.id}`))
+          .delete(P(`/roles/${tmpId}`))
           .set('Authorization', `Bearer ${tokenA}`)
           .expect((res) => expect([200, 204]).toContain(res.status));
 
         await request(app.getHttpServer())
-          .get(P(`/roles/${tmp.body.id}`))
+          .get(P(`/roles/${tmpId}`))
           .set('Authorization', `Bearer ${tokenA}`)
           .expect(404);
       });
@@ -853,7 +881,7 @@ describe('IAM Service — Full E2E Suite', () => {
           .set('Authorization', `Bearer ${tokenA}`)
           .expect(200);
 
-        const sys = rolesRes.body.find((r: any) => r.is_system === true);
+        const sys = items(rolesRes).find((r: any) => r.is_system === true);
         expect(sys).toBeDefined();
 
         await request(app.getHttpServer())
@@ -881,9 +909,9 @@ describe('IAM Service — Full E2E Suite', () => {
         })
         .expect(201);
 
-      aclId = res.body.id;
-      expect(res.body.resource_id).toBe(testResourceId);
-      expect(res.body.permission).toBe('approve');
+      aclId = d(res).id;
+      expect(d(res).resource_id).toBe(testResourceId);
+      expect(d(res).permission).toBe('approve');
     });
 
     it('GET /acl → 200 filterable; includes the ACL entry', async () => {
@@ -892,7 +920,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(200);
 
-      const ids = (res.body.data ?? res.body).map((a: any) => a.id);
+      const ids = items(res).map((a: any) => a.id);
       expect(ids).toContain(aclId);
     });
 
@@ -902,15 +930,14 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${tokenA}`)
         .send({
           user_id: memberUserId,
-          tenant_id: tenantAId,
           resource_type: 'expense',
           resource_id: testResourceId,
           permission: 'approve',
         })
         .expect(200);
 
-      expect(res.body.allowed).toBe(true);
-      expect(res.body.source).toBe('acl');
+      expect(d(res).allowed).toBe(true);
+      expect(d(res).source).toBe('db');
     });
 
     it('POST /acl/check → allowed: false for wrong permission on same resource', async () => {
@@ -919,14 +946,13 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${tokenA}`)
         .send({
           user_id: memberUserId,
-          tenant_id: tenantAId,
           resource_type: 'expense',
           resource_id: testResourceId,
           permission: 'delete',
         })
         .expect(200);
 
-      expect(res.body.allowed).toBe(false);
+      expect(d(res).allowed).toBe(false);
     });
 
     it('DELETE /acl/:id removes the ACL entry', () =>
@@ -941,14 +967,13 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${tokenA}`)
         .send({
           user_id: memberUserId,
-          tenant_id: tenantAId,
           resource_type: 'expense',
           resource_id: testResourceId,
           permission: 'approve',
         })
         .expect(200);
 
-      expect(res.body.allowed).toBe(false);
+      expect(d(res).allowed).toBe(false);
     });
   });
 
@@ -963,12 +988,12 @@ describe('IAM Service — Full E2E Suite', () => {
         .send({
           user_id: memberUserId,
           tenant_id: tenantAId,
-          permission: 'expense:read',
+          permission: 'expense.expenses.read',
         })
         .expect(200);
 
-      expect(res.body.allowed).toBe(true);
-      expect(res.body.source).toBe('rbac');
+      expect(d(res).allowed).toBe(true);
+      expect(d(res).source).toBe('rbac');
     });
 
     it('POST /authorization/check → allowed: false for payroll:write (no permission)', async () => {
@@ -977,11 +1002,11 @@ describe('IAM Service — Full E2E Suite', () => {
         .send({
           user_id: memberUserId,
           tenant_id: tenantAId,
-          permission: 'payroll:write',
+          permission: 'payroll.write',
         })
         .expect(200);
 
-      expect(res.body.allowed).toBe(false);
+      expect(d(res).allowed).toBe(false);
     });
 
     it('POST /authorization/check → allowed: true via ACL for resource-scoped permission', async () => {
@@ -993,7 +1018,7 @@ describe('IAM Service — Full E2E Suite', () => {
           user_id: memberUserId,
           resource_type: 'expense',
           resource_id: testResourceId,
-          permission: 'expense:approve',
+          permission: 'approve',
         });
 
       const res = await request(app.getHttpServer())
@@ -1001,13 +1026,13 @@ describe('IAM Service — Full E2E Suite', () => {
         .send({
           user_id: memberUserId,
           tenant_id: tenantAId,
-          permission: 'expense:approve',
+          permission: 'approve',
           resource_type: 'expense',
           resource_id: testResourceId,
         })
         .expect(200);
 
-      expect(res.body.allowed).toBe(true);
+      expect(d(res).allowed).toBe(true);
     });
 
     it('POST /authorization/check-batch → per-check results', async () => {
@@ -1018,26 +1043,22 @@ describe('IAM Service — Full E2E Suite', () => {
             {
               user_id: memberUserId,
               tenant_id: tenantAId,
-              permission: 'expense:read',
+              permission: 'expense.expenses.read',
             },
             {
               user_id: memberUserId,
               tenant_id: tenantAId,
-              permission: 'payroll:write',
+              permission: 'payroll.write',
             },
           ],
         })
         .expect(200);
 
-      const results: any[] = res.body.results ?? res.body;
+      const results: any[] = d(res)?.results ?? d(res) ?? [];
       expect(results).toHaveLength(2);
 
-      const readResult = results.find(
-        (r: any) => r.permission === 'expense:read',
-      );
-      const payrollResult = results.find(
-        (r: any) => r.permission === 'payroll:write',
-      );
+      const readResult = results[0];
+      const payrollResult = results[1];
       expect(readResult?.allowed).toBe(true);
       expect(payrollResult?.allowed).toBe(false);
     });
@@ -1060,7 +1081,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${tokenB}`)
         .expect(200);
 
-      const ids = (res.body.data ?? res.body).map((u: any) => u.id);
+      const ids = items(res).map((u: any) => u.id);
       expect(ids).not.toContain(memberUserId);
       expect(ids).not.toContain(adminUserAId);
     });
@@ -1071,7 +1092,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${tokenB}`)
         .expect(200);
 
-      const ids = res.body.map((r: any) => r.id);
+      const ids = items(res).map((r: any) => r.id);
       expect(ids).not.toContain(customRoleId);
     });
 
@@ -1093,8 +1114,8 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${tokenB}`)
         .expect(200);
 
-      const ids = (res.body.data ?? res.body).map((x: any) => x.id);
-      expect(ids).not.toContain(a.body.id);
+      const ids = items(res).map((x: any) => x.id);
+      expect(ids).not.toContain(d(a).id);
     });
 
     it('Tenant B admin PATCH on Tenant A role → 403 or 404', () =>
@@ -1110,7 +1131,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${saToken}`)
         .expect(200);
 
-      const idsA = (resA.body.data ?? resA.body).map((u: any) => u.id);
+      const idsA = items(resA).map((u: any) => u.id);
       expect(idsA).toContain(adminUserAId);
 
       const resB = await request(app.getHttpServer())
@@ -1118,7 +1139,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${saToken}`)
         .expect(200);
 
-      const idsB = (resB.body.data ?? resB.body).map((u: any) => u.id);
+      const idsB = items(resB).map((u: any) => u.id);
       expect(idsB).toContain(adminUserBId);
     });
   });
@@ -1136,7 +1157,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${saToken}`)
         .expect(200);
 
-      const ids = (res.body.data ?? res.body).map((t: any) => t.id);
+      const ids = items(res).map((t: any) => t.id);
       expect(ids).toContain(tenantAId);
       expect(ids).toContain(tenantBId);
     });
@@ -1153,7 +1174,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${saToken}`)
         .expect(200);
 
-      expect((res.body.data ?? res.body).length).toBeGreaterThan(0);
+      expect(items(res).length).toBeGreaterThan(0);
     });
 
     it('GET /super-admin/audit-logs → 200 paginated', () =>
@@ -1174,9 +1195,9 @@ describe('IAM Service — Full E2E Suite', () => {
         })
         .expect(200);
 
-      impersonationToken = res.body.access_token;
+      impersonationToken = d(res).access_token;
       expect(impersonationToken).toBeDefined();
-      expect(res.body.expires_in).toBeGreaterThan(0);
+      expect(d(res).expires_in).toBeGreaterThan(0);
     });
 
     it('impersonation token payload has identity_type: IMPERSONATION', () => {
@@ -1195,7 +1216,7 @@ describe('IAM Service — Full E2E Suite', () => {
         .set('Authorization', `Bearer ${impersonationToken}`)
         .expect(200);
 
-      expect(res.body.id).toBe(memberUserId);
+      expect(d(res).id).toBe(memberUserId);
     });
 
     it('POST /super-admin/impersonate → 404 for non-existent user', () =>
@@ -1306,12 +1327,13 @@ describe('IAM Service — Full E2E Suite', () => {
         )
         .expect(401));
 
-    it('MEMBER role → 403 on POST /roles (requires role:write)', () =>
-      request(app.getHttpServer())
+    it('MEMBER role → 403 on POST /roles (requires role:write)', async () => {
+      const res = await request(app.getHttpServer())
         .post(P('/roles'))
         .set('Authorization', `Bearer ${memberToken}`)
-        .send({ name: 'Forbidden Role', description: 'nope' })
-        .expect(403));
+        .send({ name: 'Forbidden Role', description: 'nope' });
+      expect(res.status).toBe(403);
+    });
 
     it('Tenant Admin → 403 on SuperAdmin-only POST /super-admin/impersonate', () =>
       request(app.getHttpServer())

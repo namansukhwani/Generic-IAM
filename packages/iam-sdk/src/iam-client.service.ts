@@ -30,7 +30,10 @@ export class IamClientService {
         return { allowed: false };
       }
 
-      return response.json();
+      const body = (await response.json()) as any;
+      // Unwrap ResponseTransformInterceptor envelope {success, data, meta}
+      const allowed = body.data?.allowed ?? body.allowed;
+      return { allowed: allowed === true };
     } catch (e) {
       console.error('Failed to check authorization against IAM service', e);
       return { allowed: false };

@@ -1,10 +1,28 @@
-node_modules/
+# Node modules (all depths — includes packages/*/node_modules)
+**/node_modules/
+
+# Compiled output (copied explicitly from builder stage)
 dist/
-npm-debug.log
+
+# Logs
+npm-debug.log*
+*.log
+
+# Git
 .git
 .gitignore
+
+# Environment files — containers load .env.docker instead
 .env
+.env.*.local
+
+# Docker meta-files (not needed inside image)
 Dockerfile
 docker-compose.yml
 .dockerignore
-packages/
+
+# Test utilities and coverage
+coverage/
+.nyc_output/
+test-db.ts
+test-guard.js

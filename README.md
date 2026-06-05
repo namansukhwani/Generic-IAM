@@ -12,64 +12,89 @@ A robust, multi-tenant Identity and Access Management (IAM) service built with N
 - **Authorization**: Extensible RBAC (Role + Overrides) and ACL (Resource specific)
 
 ## Prerequisites
-- Node.js >= 20.x
-- Docker and Docker Compose
-- PostgreSQL 16
-- Redis 7
-- Kafka / Zookeeper
+- Docker >= 24 and Docker Compose v2
+- Node.js >= 20.x (local dev only)
 
-## Setup Instructions
+## Quick Start — Docker (Recommended)
 
-1. **Clone the repository:**
+Everything runs with a single command. No local database, Redis, or Kafka setup required.
+
+```bash
+docker compose up --build
+```
+
+What happens automatically:
+1. PostgreSQL 16, Redis 7, ZooKeeper, and Kafka start with health-checked readiness.
+2. `kafka-init` creates all required Kafka topics.
+3. `db-init` runs TypeORM migrations then seeds system permissions, roles, and the super-admin account.
+4. The **IAM service** starts on [http://localhost:3000](http://localhost:3000) once the DB is ready.
+5. The **IAM Showcase** starts on [http://localhost:3020](http://localhost:3020) once the IAM service is healthy.
+
+| Service | Local URL |
+|---------|-----------|
+| IAM Service API | http://localhost:3000 |
+| IAM Swagger UI | http://localhost:3000/api/docs |
+| IAM Health | http://localhost:3000/health/live |
+| IAM Showcase | http://localhost:3020 |
+| PostgreSQL | localhost:5433 |
+| Redis | localhost:6379 |
+| Kafka | localhost:9092 |
+
+Default super-admin credentials (see `.env.docker`):
+- **Email**: `superadmin@platform.com`
+- **Password**: `SuperAdmin123!`
+
+### Tear down
+```bash
+docker compose down        # stop and remove containers
+docker compose down -v     # also delete database and Redis volumes
+```
+
+### Rebuild a single service after code changes
+```bash
+docker compose build iam && docker compose up -d iam
+```
+
+---
+
+## Local Development (without Docker app containers)
+
+Use this when you want hot-reload for application code but still need the infrastructure services running.
+
+1. **Clone and install:**
    ```bash
    git clone <repo-url>
    cd IAM
-   ```
-
-2. **Install dependencies:**
-   ```bash
    npm install
    ```
 
-3. **Start the infrastructure services (PostgreSQL, Redis, Kafka, Zookeeper):**
+2. **Start infrastructure only:**
    ```bash
-   docker-compose up -d postgres redis zookeeper kafka
+   docker compose up -d postgres redis zookeeper kafka
    ```
 
-4. **Environment Configuration:**
-   Create a `.env` file in the root based on `.env.example` (or configure via your environment):
-   ```env
-   NODE_ENV=development
-   PORT=3000
-   DB_HOST=localhost
-   DB_PORT=5432
-   DB_USERNAME=iam_app
-   DB_PASSWORD=devpassword
-   DB_DATABASE=iam
-   REDIS_HOST=localhost
-   REDIS_PORT=6379
-   KAFKA_BROKER=localhost:9092
-   JWT_SECRET=supersecretjwtkey
-   SUPER_ADMIN_EMAIL=superadmin@example.com
-   SUPER_ADMIN_PASSWORD=SuperSecretPassword123!
+3. **Copy and edit environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env — set DB_HOST=localhost, REDIS_HOST=localhost, KAFKA_BROKERS=localhost:9092
    ```
 
-5. **Run the Database Migrations / Sync (Ensure `synchronize: true` for dev, false for prod).**
-
-6. **Seed the Database:**
-   Populate system permissions, system roles, and the initial SuperAdmin user.
+4. **Run migrations and seed:**
    ```bash
+   npx typeorm migration:run -d src/database/data-source.ts
    npm run seed
    ```
 
-7. **Start the application:**
+5. **Start with hot-reload:**
    ```bash
    npm run start:dev
    ```
 
-8. **Alternatively, run everything via Docker Compose:**
+6. **Start the showcase (separate terminal):**
    ```bash
-   docker-compose up --build
+   cd iam-showcase
+   npm install
+   IAM_URL=http://localhost:3000 REDIS_URL=redis://localhost:6379 JWT_SECRET=<same-as-env> npm run start:dev
    ```
 
 ## API Documentation
