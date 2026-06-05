@@ -1,22 +1,13 @@
 import { DataSource } from 'typeorm';
 import { SuperAdminEntity } from '../../modules/super-admin/entities/super-admin.entity';
 import * as bcrypt from 'bcrypt';
-import { ConfigService } from '@nestjs/config';
 
-export async function seedSuperAdmin(
-  dataSource: DataSource,
-  configService: ConfigService,
-) {
+export async function seedSuperAdmin(dataSource: DataSource) {
   const superAdminRepo = dataSource.getRepository(SuperAdminEntity);
 
-  const email = configService.get<string>(
-    'SUPER_ADMIN_EMAIL',
-    'superadmin@example.com',
-  );
-  const password = configService.get<string>(
-    'SUPER_ADMIN_PASSWORD',
-    'SuperSecretPassword123!',
-  );
+  const email = process.env.SUPER_ADMIN_EMAIL ?? 'superadmin@example.com';
+  const password =
+    process.env.SUPER_ADMIN_PASSWORD ?? 'SuperSecretPassword123!';
 
   const existing = await superAdminRepo.findOne({ where: { email } });
 
