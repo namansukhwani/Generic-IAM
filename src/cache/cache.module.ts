@@ -1,7 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { CacheModule as NestCacheModule } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { redisStore } from 'cache-manager-redis-yet';
+import KeyvRedis from '@keyv/redis';
 import { CacheService } from './cache.service';
 
 function buildRedisUrl(config: ConfigService): string {
@@ -17,8 +17,9 @@ function buildRedisUrl(config: ConfigService): string {
   imports: [
     NestCacheModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        store: await redisStore({ url: buildRedisUrl(configService) }),
+      useFactory: (configService: ConfigService) => ({
+        stores: [new KeyvRedis(buildRedisUrl(configService))],
+        ttl: configService.get<number>('redis.ttlMs', 300000),
       }),
       inject: [ConfigService],
     }),

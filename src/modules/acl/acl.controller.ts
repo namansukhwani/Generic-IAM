@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { AclService } from './acl.service';
 import { CreateAclDto } from './dto/create-acl.dto';
@@ -39,7 +40,10 @@ export class AclController {
 
   @Delete(':id')
   @RequirePermissions(SYSTEM_PERMISSIONS.ACL.ALL)
-  async deleteAcl(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+  async deleteAcl(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
     await this.aclService.deleteAcl(id, user.tenant_id as string, user.sub);
     return { success: true };
   }

@@ -1,5 +1,5 @@
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
-import { Controller, Get, Patch, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Body, Param, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { PermissionService } from './permission.service';
 import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto';
 import { CurrentUser } from '@iam/nestjs-sdk';
@@ -23,7 +23,7 @@ export class PermissionController {
   @Patch('roles/:id/permissions')
   @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.WRITE)
   async assignPermissions(
-    @Param('id') roleId: string,
+    @Param('id', ParseUUIDPipe) roleId: string,
     @Body() dto: UpdateRolePermissionsDto,
     @CurrentUser() user: JwtPayload,
   ) {

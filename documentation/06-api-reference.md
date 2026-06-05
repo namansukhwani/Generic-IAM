@@ -696,7 +696,6 @@
 ```
 
 > **Note:** The JWT payload contains `identity_type: "IMPERSONATION"` and `impersonator_id`. These are embedded in the token, not returned as top-level response fields.
-```
 
 ### `GET /super-admin/audit-logs`
 

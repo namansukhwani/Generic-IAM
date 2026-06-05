@@ -13,11 +13,59 @@ export interface PermissionChangedEvent {
   };
 }
 
+export interface AclChangedEvent {
+  tenant_id?: string;
+  user_id?: string;
+  resource_type?: string;
+  resource_id?: string;
+  payload?: {
+    permission?: string;
+  };
+}
+
 @Controller()
 export class EventConsumer {
   private readonly logger = new Logger(EventConsumer.name);
 
   constructor(private readonly cacheService: CacheService) {}
+
+  @EventPattern(KAFKA_TOPICS.IAM_ACL_CHANGED)
+  async handleAclChanged(@Payload() message: AclChangedEvent) {
+    const { tenant_id, user_id, resource_type, resource_id } = message;
+    const permission = message.payload?.permission;
+
+    if (
+      !tenant_id ||
+      !user_id ||
+      !resource_type ||
+      !resource_id ||
+      !permission
+    ) {
+      this.logger.warn(
+        `acl.changed missing required fields — skipping | tenant_id=${tenant_id} user_id=${user_id} resource_type=${resource_type} resource_id=${resource_id} permission=${permission}`,
+      );
+      return;
+    }
+
+    this.logger.log(
+      `acl.changed received | tenant_id=${tenant_id} user_id=${user_id} resource_type=${resource_type} resource_id=${resource_id} permission=${permission}`,
+    );
+
+    await this.cacheService.invalidateAclCache(
+      tenant_id,
+      user_id,
+      resource_type,
+      resource_id,
+      permission,
+    );
+    await this.cacheService.invalidateAuthzDecision(
+      tenant_id,
+      user_id,
+      permission,
+      resource_type,
+      resource_id,
+    );
+  }
 
   @EventPattern(KAFKA_TOPICS.IAM_PERMISSION_CHANGED)
   async handlePermissionChanged(@Payload() message: PermissionChangedEvent) {

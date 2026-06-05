@@ -73,6 +73,18 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
 
   // ── Invalidation helpers ──────────────────────────────────────────────────
 
+  async invalidateAclCache(
+    tenantId: string,
+    userId: string,
+    resourceType: string,
+    resourceId: string,
+    permission: string,
+  ): Promise<void> {
+    const key = `acl:${tenantId}:${userId}:${resourceType}:${resourceId}:${permission}`;
+    this.logger.log(`Cache invalidateAclCache | key=${key}`);
+    await this.cacheManager.del(key);
+  }
+
   /**
    * Clears the full permission set AND all individual authz: decisions for a
    * single user. Call after any per-user permission change (role assignment,

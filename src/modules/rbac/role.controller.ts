@@ -8,6 +8,7 @@ import {
   Param,
   Body,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -44,14 +45,17 @@ export class RoleController {
 
   @Get(':id')
   @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.READ)
-  async getRole(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+  async getRole(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
     return this.roleService.findOneForTenant(id, user.tenant_id as string);
   }
 
   @Patch(':id')
   @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.WRITE)
   async updateRole(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: Partial<CreateRoleDto>,
     @CurrentUser() user: JwtPayload,
   ) {
@@ -65,7 +69,10 @@ export class RoleController {
 
   @Delete(':id')
   @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.WRITE)
-  async deleteRole(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+  async deleteRole(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
     await this.roleService.deleteCustomRole(
       id,
       user.tenant_id as string,

@@ -90,6 +90,7 @@ services:
       kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic iam.permission.changed --partitions 3 --replication-factor 1 &&
       kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic iam.user.changed       --partitions 3 --replication-factor 1 &&
       kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic iam.role.changed       --partitions 3 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic iam.acl.changed        --partitions 3 --replication-factor 1 &&
       echo '✓ Kafka topics ready.'
       "
     restart: "no"

@@ -3,6 +3,7 @@ export const KAFKA_TOPICS = {
   IAM_PERMISSION_CHANGED: 'iam.permission.changed',
   IAM_USER_CHANGED: 'iam.user.changed',
   IAM_ROLE_CHANGED: 'iam.role.changed',
+  IAM_ACL_CHANGED: 'iam.acl.changed',
 } as const;
 
 export const KAFKA_CONSUMER_GROUPS = {

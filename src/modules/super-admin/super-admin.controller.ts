@@ -11,6 +11,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { SuperAdminService } from './super-admin.service';
 import { ImpersonateDto } from './dto/impersonate.dto';
@@ -39,7 +40,7 @@ export class SuperAdminController {
   }
 
   @Get('tenants/:id/users')
-  async getTenantUsers(@Param('id') tenantId: string) {
+  async getTenantUsers(@Param('id', ParseUUIDPipe) tenantId: string) {
     // Note: Requires SuperAdmin Guard
     return this.superAdminService.getTenantUsers(tenantId);
   }

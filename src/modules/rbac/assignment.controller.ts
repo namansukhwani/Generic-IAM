@@ -8,6 +8,7 @@ import {
   Param,
   Body,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { AssignmentService } from './assignment.service';
 import { OverrideService } from './override.service';
@@ -32,7 +33,7 @@ export class AssignmentController {
   @Patch('roles')
   @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.ASSIGN)
   async updateUserRoles(
-    @Param('userId') targetUserId: string,
+    @Param('userId', ParseUUIDPipe) targetUserId: string,
     @Body() dto: UpdateUserRolesDto,
     @CurrentUser() user: JwtPayload,
   ) {
@@ -48,7 +49,7 @@ export class AssignmentController {
   @Get('roles')
   @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.READ)
   async getUserRoles(
-    @Param('userId') targetUserId: string,
+    @Param('userId', ParseUUIDPipe) targetUserId: string,
     @CurrentUser() user: JwtPayload,
   ) {
     return this.assignmentService.getUserRoles(
@@ -62,7 +63,7 @@ export class AssignmentController {
   @Post('permission-overrides')
   @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.ASSIGN)
   async addOverride(
-    @Param('userId') targetUserId: string,
+    @Param('userId', ParseUUIDPipe) targetUserId: string,
     @Body() dto: CreateOverrideDto,
     @CurrentUser() user: JwtPayload,
   ) {
@@ -77,7 +78,7 @@ export class AssignmentController {
   @Get('permission-overrides')
   @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.READ)
   async getOverrides(
-    @Param('userId') targetUserId: string,
+    @Param('userId', ParseUUIDPipe) targetUserId: string,
     @CurrentUser() user: JwtPayload,
   ) {
     return this.overrideService.getOverridesForUser(
@@ -89,8 +90,8 @@ export class AssignmentController {
   @Delete('permission-overrides/:overrideId')
   @RequirePermissions(SYSTEM_PERMISSIONS.ROLE.ASSIGN)
   async removeOverride(
-    @Param('userId') targetUserId: string,
-    @Param('overrideId') overrideId: string,
+    @Param('userId', ParseUUIDPipe) targetUserId: string,
+    @Param('overrideId', ParseUUIDPipe) overrideId: string,
     @CurrentUser() user: JwtPayload,
   ) {
     await this.overrideService.removeOverride(
@@ -104,7 +105,7 @@ export class AssignmentController {
 
   @Get('effective-permissions')
   async getEffectivePermissions(
-    @Param('userId') targetUserId: string,
+    @Param('userId', ParseUUIDPipe) targetUserId: string,
     @CurrentUser() user: JwtPayload,
   ) {
     return this.overrideService.getEffectivePermissions(
