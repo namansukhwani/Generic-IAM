@@ -28,14 +28,14 @@ What happens automatically:
 2. `kafka-init` creates all required Kafka topics.
 3. `db-init` runs TypeORM migrations then seeds system permissions, roles, and the super-admin account.
 4. The **IAM service** starts on [http://localhost:3000](http://localhost:3000) once the DB is ready.
-5. The **IAM Showcase** starts on [http://localhost:3020](http://localhost:3020) once the IAM service is healthy.
+5. The **IAM Showcase** starts on [http://localhost:3010](http://localhost:3010) once the IAM service is healthy.
 
 | Service | Local URL |
 |---------|-----------|
 | IAM Service API | http://localhost:3000 |
 | IAM Swagger UI | http://localhost:3000/api/docs |
 | IAM Health | http://localhost:3000/health/live |
-| IAM Showcase | http://localhost:3020 |
+| IAM Showcase | http://localhost:3010 |
 | PostgreSQL | localhost:5433 |
 | Redis | localhost:6379 |
 | Kafka | localhost:9092 |
@@ -46,13 +46,13 @@ Default super-admin credentials (see `.env.docker`):
 
 ### Tear down
 ```bash
-docker compose down        # stop and remove containers
-docker compose down -v     # also delete database and Redis volumes
+docker-compose down        # stop and remove containers
+docker-compose down -v     # also delete database and Redis volumes
 ```
 
 ### Rebuild a single service after code changes
 ```bash
-docker compose build iam && docker compose up -d iam
+docker-compose build iam && docker-compose up -d iam
 ```
 
 ---

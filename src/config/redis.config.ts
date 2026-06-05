@@ -7,6 +7,7 @@ export default registerAs('redis', () => {
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
     password: process.env.REDIS_PASSWORD || '',
     db: parseInt(process.env.REDIS_DB || '0', 10),
+    ttlMs: parseInt(process.env.CACHE_TTL_MS || '300000', 10),
   };
 
   const schema = Joi.object({
@@ -14,6 +15,7 @@ export default registerAs('redis', () => {
     port: Joi.number().default(6379),
     password: Joi.string().allow(''),
     db: Joi.number().default(0),
+    ttlMs: Joi.number().default(300000),
   });
 
   const { error, value } = schema.validate(values, { abortEarly: false });

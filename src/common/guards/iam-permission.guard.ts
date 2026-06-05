@@ -16,7 +16,7 @@ import { RequestContext } from '../interfaces/request-context.interface';
 
 @Injectable()
 export class IamPermissionGuard extends PermissionGuard {
-  private readonly logger = new Logger(IamPermissionGuard.name);
+  protected readonly logger = new Logger(IamPermissionGuard.name);
 
   constructor(
     protected reflector: Reflector,

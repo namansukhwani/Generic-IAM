@@ -1,22 +1,28 @@
 import {
   Injectable,
   Inject,
+  Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { createClient, RedisClientType } from 'redis';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CacheService implements OnModuleInit, OnModuleDestroy {
-  private readonly TTL_MS = 300_000; // 5 minutes
+  private readonly logger = new Logger(CacheService.name);
+  private readonly ttlMs: number;
   private scanClient: RedisClientType;
 
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     @Inject('CACHE_REDIS_URL') private readonly redisUrl: string,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.ttlMs = this.configService.get<number>('redis.ttlMs', 300000);
+  }
 
   async onModuleInit() {
     this.scanClient = createClient({ url: this.redisUrl }) as RedisClientType;
@@ -28,11 +34,16 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
   }
 
   async get<T>(key: string): Promise<T | undefined> {
-    return this.cacheManager.get<T>(key);
+    const val = await this.cacheManager.get<T>(key);
+    this.logger.log(
+      `Cache GET | key=${key} hit=${val !== undefined && val !== null}`,
+    );
+    return val;
   }
 
   async set(key: string, value: any, ttlSeconds?: number): Promise<void> {
     const ttl = ttlSeconds !== undefined ? ttlSeconds * 1000 : undefined;
+    this.logger.log(`Cache SET | key=${key} ttlMs=${ttl ?? this.ttlMs}`);
     await this.cacheManager.set(key, value, ttl);
   }
 
@@ -44,6 +55,7 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
   ): Promise<Set<string> | null> {
     const key = `perms:${tenantId}:${userId}`;
     const data = await this.cacheManager.get<string[]>(key);
+    this.logger.log(`Cache getPermissions | key=${key} hit=${!!data}`);
     return data ? new Set(data) : null;
   }
 
@@ -53,7 +65,10 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     permissions: Set<string>,
   ): Promise<void> {
     const key = `perms:${tenantId}:${userId}`;
-    await this.cacheManager.set(key, Array.from(permissions), this.TTL_MS);
+    this.logger.log(
+      `Cache setPermissions | key=${key} size=${permissions.size} ttlMs=${this.ttlMs}`,
+    );
+    await this.cacheManager.set(key, Array.from(permissions), this.ttlMs);
   }
 
   // ── Invalidation helpers ──────────────────────────────────────────────────
@@ -67,6 +82,9 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     tenantId: string,
     userId: string,
   ): Promise<void> {
+    this.logger.log(
+      `Cache invalidateUserPermissionCache | tenantId=${tenantId} userId=${userId}`,
+    );
     await this.cacheManager.del(`perms:${tenantId}:${userId}`);
     await this.scanAndDelete(`authz:${tenantId}:${userId}:*`);
   }
@@ -76,6 +94,9 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
    * role-level permission change (affects all users holding that role).
    */
   async invalidateTenantPermissionCache(tenantId: string): Promise<void> {
+    this.logger.log(
+      `Cache invalidateTenantPermissionCache | tenantId=${tenantId}`,
+    );
     await this.scanAndDelete(`perms:${tenantId}:*`);
     await this.scanAndDelete(`authz:${tenantId}:*`);
   }
@@ -92,12 +113,14 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     resourceId: string,
   ): Promise<void> {
     const key = `authz:${tenantId}:${userId}:${permission}:${resourceType}:${resourceId}`;
+    this.logger.log(`Cache invalidateAuthzDecision | key=${key}`);
     await this.cacheManager.del(key);
   }
 
   // ── Internal ──────────────────────────────────────────────────────────────
 
   private async scanAndDelete(pattern: string): Promise<void> {
+    this.logger.log(`Cache scanAndDelete | pattern=${pattern}`);
     const keys: string[] = [];
     for await (const batch of this.scanClient.scanIterator({
       MATCH: pattern,
@@ -111,6 +134,9 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
         keys.push(batch as string);
       }
     }
+    this.logger.log(
+      `Cache scanAndDelete keys found | count=${keys.length} keys=[${keys.join(', ')}]`,
+    );
     if (keys.length > 0) {
       await this.scanClient.del(keys as [string, ...string[]]);
     }

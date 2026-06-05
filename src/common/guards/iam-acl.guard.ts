@@ -17,7 +17,7 @@ import { RequestContext } from '../interfaces/request-context.interface';
 
 @Injectable()
 export class IamAclGuard extends AclGuard {
-  private readonly logger = new Logger(IamAclGuard.name);
+  protected readonly logger = new Logger(IamAclGuard.name);
 
   constructor(
     protected reflector: Reflector,

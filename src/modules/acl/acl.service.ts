@@ -75,7 +75,20 @@ export class AclService extends BaseService<ResourceAclEntity> {
       permission: dto.permission,
     });
 
-    const saved = await this.repository.save(acl);
+    let saved: ResourceAclEntity;
+    try {
+      saved = await this.repository.save(acl);
+    } catch (error: any) {
+      if (error.code === '23503') {
+        if (error.constraint === 'FK_ded2945f980f33a458645c5a319') {
+          throw new NotFoundException(`Tenant with ID ${tenantId} not found`);
+        }
+        if (error.constraint === 'FK_8a9c9d4f2f2a8792777f81f65f8') {
+          throw new NotFoundException(`User with ID ${dto.user_id} not found`);
+        }
+      }
+      throw error;
+    }
 
     // Clear the acl: lookup cache and the authz: decision that AuthorizationService
     // may have cached (allowed=false before this grant was created).
